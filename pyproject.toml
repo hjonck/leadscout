@@ -1,0 +1,223 @@
+[tool.poetry]
+name = "leadscout"
+version = "0.1.0"
+description = "AI-Powered Lead Enrichment System for South African Businesses"
+authors = ["AgileWorks <info@agileworks.co.za>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/AgileWorksZA/leadscout"
+repository = "https://github.com/AgileWorksZA/leadscout"
+documentation = "https://github.com/AgileWorksZA/leadscout/docs"
+keywords = ["lead-enrichment", "ai", "business-intelligence", "south-africa", "cipc"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+packages = [{include = "leadscout", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Core dependencies
+click = "^8.1.7"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+# Data processing
+pandas = "^2.1.0"
+openpyxl = "^3.1.2"
+# HTTP and API
+httpx = "^0.25.0"
+# AI/ML
+openai = "^1.6.0"
+anthropic = "^0.8.0"
+# Phonetic matching
+jellyfish = "^0.11.0"
+# Database
+sqlalchemy = "^2.0.0"
+alembic = "^1.13.0"
+# Utilities
+python-dotenv = "^1.0.0"
+rich = "^13.7.0"
+tqdm = "^4.66.0"
+# Logging
+structlog = "^23.2.0"
+# Configuration
+pyyaml = "^6.0.1"
+toml = "^0.10.2"
+
+[tool.poetry.group.dev.dependencies]
+# Testing
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.0"
+pytest-mock = "^3.12.0"
+pytest-httpx = "^0.26.0"
+# Code quality
+black = "^23.12.0"
+isort = "^5.13.0"
+flake8 = "^6.1.0"
+mypy = "^1.8.0"
+# Documentation
+mkdocs = "^1.5.0"
+mkdocs-material = "^9.5.0"
+mkdocs-mermaid2-plugin = "^1.1.0"
+# Development tools
+pre-commit = "^3.6.0"
+ipython = "^8.18.0"
+# Security
+bandit = "^1.7.0"
+safety = "^2.3.0"
+
+[tool.poetry.scripts]
+leadscout = "leadscout.cli.main:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+known_first_party = ["leadscout"]
+known_third_party = [
+    "click",
+    "pydantic",
+    "pandas",
+    "httpx",
+    "openai",
+    "anthropic",
+    "jellyfish",
+    "sqlalchemy",
+    "structlog",
+    "rich",
+    "tqdm",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "jellyfish.*",
+    "openpyxl.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=leadscout",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "api: marks tests that require API access",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py",
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "docs"]
+skips = ["B101", "B601"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs/source/conf.py",
+    "old",
+    "build",
+    "dist",
+    ".venv",
+    ".eggs",
+    "*.egg",
+]
+per-file-ignores = [
+    "__init__.py:F401",  # imported but unused
+    "tests/*:S101",      # use of assert
+]
