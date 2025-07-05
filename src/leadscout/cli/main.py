@@ -4,37 +4,37 @@ This module provides the primary command-line interface for the LeadScout
 lead enrichment system.
 """
 
-import click
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import click
 
 from ..core.config import get_settings
-from .commands import enrich, cache, config
+from .commands import cache, config, enrich
 
 
 @click.group()
 @click.version_option()
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option(
-    '--verbose', '-v', 
-    is_flag=True, 
-    help='Enable verbose output'
-)
-@click.option(
-    '--config-file', '-c',
+    "--config-file",
+    "-c",
     type=click.Path(exists=True, path_type=Path),
-    help='Path to configuration file'
+    help="Path to configuration file",
 )
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool, config_file: Optional[Path]) -> None:
+def cli(
+    ctx: click.Context, verbose: bool, config_file: Optional[Path]
+) -> None:
     """LeadScout: AI-Powered Lead Enrichment System.
-    
+
     Enrich business lead data with AI-powered research including:
     - Name ethnicity classification for targeting
     - Website discovery and validation
     - LinkedIn profile research
     - Contact information validation
     - Lead scoring and prioritization
-    
+
     Examples:
         leadscout enrich leads.xlsx --output enriched_leads.xlsx
         leadscout cache status
@@ -42,15 +42,15 @@ def cli(ctx: click.Context, verbose: bool, config_file: Optional[Path]) -> None:
     """
     # Ensure context object exists
     ctx.ensure_object(dict)
-    
+
     # Store global options
-    ctx.obj['verbose'] = verbose
-    ctx.obj['config_file'] = config_file
-    
+    ctx.obj["verbose"] = verbose
+    ctx.obj["config_file"] = config_file
+
     # Load and validate configuration
     try:
         settings = get_settings(config_file)
-        ctx.obj['settings'] = settings
+        ctx.obj["settings"] = settings
     except Exception as e:
         if verbose:
             click.echo(f"Configuration error: {e}", err=True)
@@ -59,9 +59,9 @@ def cli(ctx: click.Context, verbose: bool, config_file: Optional[Path]) -> None:
 
 # Add command groups
 cli.add_command(enrich.enrich)
-cli.add_command(cache.cache) 
+cli.add_command(cache.cache)
 cli.add_command(config.config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

@@ -1,0 +1,466 @@
+"""Main name classification orchestrator combining all three approaches.
+
+This module provides the unified NameClassifier that orchestrates rule-based,
+phonetic, and LLM classification methods in a multi-layered approach optimized
+for South African naming patterns.
+
+Key Features:
+- Multi-layered classification pipeline (Rule → Phonetic → LLM)
+- Intelligent caching integration with Developer A's cache system
+- Performance optimization with configurable fallback thresholds
+- Comprehensive statistics and monitoring
+- Batch processing for large datasets
+
+Architecture Decision: Uses cascading approach where each layer only processes
+names that couldn't be classified by previous layers, ensuring optimal
+performance and cost efficiency.
+
+Integration: Coordinates with cache system for performance, provides results
+for lead scoring, supports async batch processing.
+"""
+
+import asyncio
+import logging
+import time
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set, Union
+
+from leadscout.core.config import get_settings
+
+from .dictionaries import EthnicityType
+from .exceptions import (
+    BatchProcessingError,
+    ClassificationError,
+    ConfidenceThresholdError,
+    raise_invalid_name,
+    raise_low_confidence,
+)
+from .llm import LLMClassifier
+from .models import (
+    BatchClassificationRequest,
+    Classification,
+    ClassificationCache,
+    ClassificationMethod,
+    ClassificationRequest,
+    ClassificationStats,
+    ConfidenceLevel,
+)
+from .phonetic import PhoneticClassifier
+from .rules import RuleBasedClassifier
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ClassificationSession:
+    """Tracking data for a classification session."""
+    
+    names_processed: int = 0
+    rule_hits: int = 0
+    phonetic_hits: int = 0
+    llm_hits: int = 0
+    cache_hits: int = 0
+    total_time_ms: float = 0.0
+    rule_time_ms: float = 0.0
+    phonetic_time_ms: float = 0.0
+    llm_time_ms: float = 0.0
+    llm_cost_usd: float = 0.0
+    errors: List[str] = field(default_factory=list)
+
+
+class NameClassifier:
+    """Main name classifier orchestrating rule-based, phonetic, and LLM approaches.
+    
+    This is the primary interface for name classification, providing a unified
+    API that combines all three classification methods in an optimized pipeline.
+    
+    Architecture:
+    1. Rule-based classification (fastest, highest accuracy for known names)
+    2. Phonetic matching (medium speed, good for variants)
+    3. LLM classification (slowest, most flexible for edge cases)
+    
+    Each layer only processes names that couldn't be classified by previous
+    layers, ensuring optimal performance and cost efficiency.
+    """
+    
+    def __init__(
+        self,
+        rule_confidence_threshold: float = 0.8,
+        phonetic_confidence_threshold: float = 0.6,
+        llm_confidence_threshold: float = 0.5,
+        enable_caching: bool = True,
+        enable_llm: bool = True,
+        max_llm_cost_per_session: float = 10.0,
+    ):
+        """Initialize the name classifier with all three approaches.
+        
+        Args:
+            rule_confidence_threshold: Minimum confidence for rule-based results
+            phonetic_confidence_threshold: Minimum confidence for phonetic results
+            llm_confidence_threshold: Minimum confidence for LLM results
+            enable_caching: Whether to use caching system
+            enable_llm: Whether to enable LLM fallback (can disable for cost control)
+            max_llm_cost_per_session: Maximum LLM cost per session in USD
+        """
+        self.rule_confidence_threshold = rule_confidence_threshold
+        self.phonetic_confidence_threshold = phonetic_confidence_threshold
+        self.llm_confidence_threshold = llm_confidence_threshold
+        self.enable_caching = enable_caching
+        self.enable_llm = enable_llm
+        self.max_llm_cost_per_session = max_llm_cost_per_session
+        
+        # Initialize component classifiers
+        self.rule_classifier = RuleBasedClassifier()
+        self.phonetic_classifier = PhoneticClassifier()
+        
+        # Initialize LLM classifier only if enabled
+        self.llm_classifier: Optional[LLMClassifier] = None
+        if self.enable_llm:
+            try:
+                self.llm_classifier = LLMClassifier()
+                logger.info("LLM classifier initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LLM classifier: {e}")
+                self.enable_llm = False
+        
+        # Session tracking
+        self.current_session = ClassificationSession()
+        
+        # Cache integration (placeholder for Developer A's cache system)
+        self.cache: Optional[ClassificationCache] = None
+        
+        logger.info(
+            f"NameClassifier initialized - "
+            f"Rule threshold: {rule_confidence_threshold}, "
+            f"Phonetic threshold: {phonetic_confidence_threshold}, "
+            f"LLM enabled: {enable_llm}"
+        )
+    
+    async def classify_name(
+        self, 
+        name: str,
+        context: Optional[Dict[str, str]] = None,
+        require_high_confidence: bool = False,
+    ) -> Optional[Classification]:
+        """Classify a single name using the multi-layered approach.
+        
+        Args:
+            name: The name to classify
+            context: Additional context (e.g., location, other names)
+            require_high_confidence: If True, only return high-confidence results
+            
+        Returns:
+            Classification result or None if no confident classification possible
+            
+        Raises:
+            ClassificationError: If classification fails due to system error
+            NameValidationError: If name is invalid
+        """
+        if not name or not name.strip():
+            raise_invalid_name(name or "", "Empty or whitespace-only name")
+        
+        name = name.strip()
+        start_time = time.time()
+        
+        try:
+            # Check cache first (if enabled and available)
+            if self.enable_caching and self.cache:
+                cached_result = await self._check_cache(name)
+                if cached_result:
+                    self.current_session.cache_hits += 1
+                    self.current_session.names_processed += 1
+                    return cached_result
+            
+            result = None
+            
+            # Layer 1: Rule-based classification
+            rule_start = time.time()
+            try:
+                result = self.rule_classifier.classify_name(name)
+                rule_time = (time.time() - rule_start) * 1000
+                self.current_session.rule_time_ms += rule_time
+                
+                if result and result.confidence >= self.rule_confidence_threshold:
+                    if require_high_confidence and result.confidence < 0.85:
+                        # Continue to next layer for higher confidence
+                        pass
+                    else:
+                        self.current_session.rule_hits += 1
+                        await self._cache_result(name, result)
+                        return result
+                        
+            except Exception as e:
+                logger.warning(f"Rule-based classification failed for '{name}': {e}")
+                self.current_session.errors.append(f"Rule error: {str(e)[:100]}")
+            
+            # Layer 2: Phonetic classification
+            phonetic_start = time.time()
+            try:
+                result = await self.phonetic_classifier.classify_name(name)
+                phonetic_time = (time.time() - phonetic_start) * 1000
+                self.current_session.phonetic_time_ms += phonetic_time
+                
+                if result and result.confidence >= self.phonetic_confidence_threshold:
+                    if require_high_confidence and result.confidence < 0.85:
+                        # Continue to LLM for higher confidence
+                        pass
+                    else:
+                        self.current_session.phonetic_hits += 1
+                        await self._cache_result(name, result)
+                        return result
+                        
+            except Exception as e:
+                logger.warning(f"Phonetic classification failed for '{name}': {e}")
+                self.current_session.errors.append(f"Phonetic error: {str(e)[:100]}")
+            
+            # Layer 3: LLM classification (if enabled and within cost limits)
+            if (self.enable_llm and 
+                self.llm_classifier and 
+                self.current_session.llm_cost_usd < self.max_llm_cost_per_session):
+                
+                llm_start = time.time()
+                try:
+                    result = await self.llm_classifier.classify_name(name, context)
+                    llm_time = (time.time() - llm_start) * 1000
+                    self.current_session.llm_time_ms += llm_time
+                    
+                    # Track LLM cost
+                    if hasattr(result, 'llm_details') and result.llm_details:
+                        self.current_session.llm_cost_usd += result.llm_details.cost_usd
+                    
+                    if result and result.confidence >= self.llm_confidence_threshold:
+                        self.current_session.llm_hits += 1
+                        await self._cache_result(name, result)
+                        return result
+                        
+                except Exception as e:
+                    logger.warning(f"LLM classification failed for '{name}': {e}")
+                    self.current_session.errors.append(f"LLM error: {str(e)[:100]}")
+            
+            # No classification possible
+            if require_high_confidence:
+                confidence = result.confidence if result else 0.0
+                raise_low_confidence(name, "multi-layer", confidence, 0.85)
+            
+            return None
+            
+        finally:
+            total_time = (time.time() - start_time) * 1000
+            self.current_session.total_time_ms += total_time
+            self.current_session.names_processed += 1
+    
+    async def classify_batch(
+        self,
+        names: List[str],
+        context: Optional[Dict[str, str]] = None,
+        max_concurrent: int = 10,
+        progress_callback: Optional[callable] = None,
+    ) -> List[Optional[Classification]]:
+        """Classify a batch of names concurrently.
+        
+        Args:
+            names: List of names to classify
+            context: Shared context for all names
+            max_concurrent: Maximum concurrent classifications
+            progress_callback: Optional callback for progress updates
+            
+        Returns:
+            List of classification results (same order as input)
+            
+        Raises:
+            BatchProcessingError: If batch processing fails
+        """
+        if not names:
+            return []
+        
+        logger.info(f"Starting batch classification of {len(names)} names")
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def classify_with_semaphore(name: str, index: int) -> tuple[int, Optional[Classification]]:
+            async with semaphore:
+                try:
+                    result = await self.classify_name(name, context)
+                    if progress_callback:
+                        progress_callback(index + 1, len(names))
+                    return index, result
+                except Exception as e:
+                    logger.error(f"Failed to classify '{name}' at index {index}: {e}")
+                    return index, None
+        
+        try:
+            # Process all names concurrently
+            tasks = [
+                classify_with_semaphore(name, i) 
+                for i, name in enumerate(names)
+            ]
+            
+            completed_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Sort results back to original order
+            results = [None] * len(names)
+            failed_count = 0
+            
+            for result in completed_results:
+                if isinstance(result, Exception):
+                    failed_count += 1
+                    continue
+                
+                index, classification = result
+                results[index] = classification
+            
+            if failed_count > 0:
+                logger.warning(f"Batch processing completed with {failed_count} failures")
+            
+            logger.info(f"Batch classification completed: {len(names) - failed_count}/{len(names)} successful")
+            return results
+            
+        except Exception as e:
+            failed_names = [name for name, result in zip(names, results) if result is None]
+            raise BatchProcessingError(
+                f"Batch processing failed: {str(e)}",
+                batch_size=len(names),
+                processed_count=len(names) - len(failed_names),
+                failed_names=failed_names[:10],  # Limit to first 10 for readability
+            ) from e
+    
+    async def _check_cache(self, name: str) -> Optional[Classification]:
+        """Check cache for existing classification (placeholder for Developer A's cache)."""
+        # TODO: Integrate with Developer A's cache system
+        return None
+    
+    async def _cache_result(self, name: str, result: Classification) -> None:
+        """Cache classification result (placeholder for Developer A's cache)."""
+        # TODO: Integrate with Developer A's cache system
+        pass
+    
+    def get_session_stats(self) -> ClassificationStats:
+        """Get statistics for the current classification session."""
+        session = self.current_session
+        
+        # Calculate rates and averages
+        cache_hit_rate = (
+            session.cache_hits / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
+        rule_hit_rate = (
+            session.rule_hits / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
+        phonetic_hit_rate = (
+            session.phonetic_hits / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
+        llm_usage_rate = (
+            session.llm_hits / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
+        avg_time_ms = (
+            session.total_time_ms / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
+        return ClassificationStats(
+            total_classifications=session.names_processed,
+            rule_classifications=session.rule_hits,
+            phonetic_classifications=session.phonetic_hits,
+            llm_classifications=session.llm_hits,
+            cache_hits=session.cache_hits,
+            cache_hit_rate=cache_hit_rate,
+            rule_hit_rate=rule_hit_rate,
+            phonetic_hit_rate=phonetic_hit_rate,
+            llm_usage_rate=llm_usage_rate,
+            average_time_ms=avg_time_ms,
+            total_time_ms=session.total_time_ms,
+            llm_cost_usd=session.llm_cost_usd,
+            error_count=len(session.errors),
+            performance_targets_met={
+                "rule_time_under_10ms": session.rule_time_ms / max(session.rule_hits, 1) < 10,
+                "phonetic_time_under_50ms": session.phonetic_time_ms / max(session.phonetic_hits, 1) < 50,
+                "cache_hit_rate_over_80%": cache_hit_rate > 0.8,
+                "llm_usage_under_5%": llm_usage_rate < 0.05,
+            }
+        )
+    
+    def reset_session_stats(self) -> ClassificationStats:
+        """Reset session statistics and return the final stats."""
+        final_stats = self.get_session_stats()
+        self.current_session = ClassificationSession()
+        return final_stats
+    
+    def get_system_info(self) -> Dict[str, any]:
+        """Get information about the classification system."""
+        return {
+            "version": "1.0.0",
+            "enabled_layers": {
+                "rule_based": True,
+                "phonetic": True,
+                "llm": self.enable_llm,
+                "caching": self.enable_caching,
+            },
+            "confidence_thresholds": {
+                "rule_based": self.rule_confidence_threshold,
+                "phonetic": self.phonetic_confidence_threshold,
+                "llm": self.llm_confidence_threshold,
+            },
+            "cost_limits": {
+                "max_llm_cost_per_session": self.max_llm_cost_per_session,
+                "current_session_cost": self.current_session.llm_cost_usd,
+            },
+            "component_info": {
+                "rule_classifier": self.rule_classifier.get_coverage_stats(),
+                "phonetic_classifier": self.phonetic_classifier.get_phonetic_stats(),
+                "llm_classifier": (
+                    self.llm_classifier.get_usage_stats() 
+                    if self.llm_classifier else None
+                ),
+            },
+        }
+
+
+# Factory function for easy instantiation with different configurations
+def create_classifier(
+    mode: str = "balanced",
+    enable_llm: bool = True,
+    max_cost: float = 10.0,
+) -> NameClassifier:
+    """Create a name classifier with predefined configuration modes.
+    
+    Args:
+        mode: Configuration mode ('fast', 'balanced', 'accurate')
+        enable_llm: Whether to enable LLM classification
+        max_cost: Maximum LLM cost per session
+        
+    Returns:
+        Configured NameClassifier instance
+    """
+    if mode == "fast":
+        # Optimized for speed, higher thresholds
+        return NameClassifier(
+            rule_confidence_threshold=0.7,
+            phonetic_confidence_threshold=0.7,
+            llm_confidence_threshold=0.6,
+            enable_llm=enable_llm,
+            max_llm_cost_per_session=max_cost,
+        )
+    elif mode == "accurate":
+        # Optimized for accuracy, lower thresholds
+        return NameClassifier(
+            rule_confidence_threshold=0.9,
+            phonetic_confidence_threshold=0.8,
+            llm_confidence_threshold=0.7,
+            enable_llm=enable_llm,
+            max_llm_cost_per_session=max_cost,
+        )
+    else:  # balanced
+        # Default balanced configuration
+        return NameClassifier(
+            rule_confidence_threshold=0.8,
+            phonetic_confidence_threshold=0.6,
+            llm_confidence_threshold=0.5,
+            enable_llm=enable_llm,
+            max_llm_cost_per_session=max_cost,
+        )

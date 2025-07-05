@@ -8,9 +8,9 @@ CIPC provides **multiple pathways for accessing South African company registry d
 2. **CSV Downloads**: Monthly alphabetical files available but with commercial use restrictions
 3. **Individual Disclosures**: Per-company data access at R30 per company
 
-**Primary Recommendation**: Use CIPC API services for commercial applications, as they provide proper licensing and real-time data access. CSV downloads should only be used for non-commercial research or with explicit written permission from CIPC Legal Services.
+**UPDATED RECOMMENDATION** (Based on confirmed legal permissions): **Use CSV download approach as primary method**, as we have full legal permissions to use the data commercially. This provides superior cost efficiency, simplicity, and reliability compared to API integration.
 
-**Critical Finding**: **Commercial usage of CIPC data requires written permission** from CIPC Legal Services, regardless of access method.
+**Critical Update**: **Full legal permissions confirmed** for commercial usage of CIPC data - this enables the optimal CSV-based approach.
 
 ## CIPC Data Access Methods Validation
 
@@ -219,38 +219,39 @@ From CIPC Terms and Conditions:
 
 ## Integration Strategy Recommendations
 
-### Primary Recommendation: CIPC API Integration
+### Primary Recommendation: CSV Download Integration ⭐ **UPDATED**
 
-#### Rationale
-- **Legal Compliance**: Proper commercial licensing framework
-- **Data Quality**: Comprehensive and real-time information
-- **Scalability**: Designed for commercial applications
-- **Support**: Official support and documentation available
+#### Rationale (With Legal Permissions Confirmed)
+- **Zero Cost**: Completely free vs unknown API costs
+- **Reliability**: No external dependencies or API rate limits
+- **Performance**: Local data access with sub-millisecond lookup times
+- **Scalability**: All 100K+ companies immediately available
+- **Simplicity**: Standard CSV processing vs complex API integration
 
-#### Implementation Plan
-1. **Register for CIPC API Access** (Week 1)
-   - Obtain CIPC customer code
-   - Complete API registration process
-   - Review pricing and usage terms
-   - Set up development environment
+#### Implementation Plan (CSV Approach)
+1. **Download and Process CIPC Data** (Week 1)
+   - Download all 25 CSV files (Lists 1-25)
+   - Parse and validate data structure
+   - Build SQLite database with indexed company names
+   - Set up automated monthly download process
 
-2. **Develop API Integration** (Week 2)
-   - Implement authentication and error handling
-   - Build company search and retrieval functions
-   - Add caching layer for performance optimization
-   - Create monitoring and usage tracking
+2. **Build Search Infrastructure** (Week 2)
+   - Implement fuzzy company name matching
+   - Add phonetic search capabilities (Soundex, Metaphone)
+   - Create fast lookup APIs for lead enrichment
+   - Add data freshness monitoring
 
-3. **Testing and Validation** (Week 3)
-   - Test with our existing company dataset
-   - Validate data quality and completeness
-   - Performance testing with realistic load
-   - Cost analysis with actual usage
+3. **Testing and Optimization** (Week 3)
+   - Test search accuracy with known companies
+   - Optimize database queries for sub-10ms responses
+   - Validate data completeness (100K+ companies)
+   - Performance testing with realistic loads
 
 4. **Production Deployment** (Week 4)
-   - Deploy to production environment
-   - Configure monitoring and alerting
-   - Document usage patterns and costs
-   - Establish ongoing maintenance procedures
+   - Deploy optimized database and search APIs
+   - Configure automated monthly data updates
+   - Set up monitoring for data freshness
+   - Document maintenance procedures
 
 ### Fallback Option: CSV + API Hybrid
 

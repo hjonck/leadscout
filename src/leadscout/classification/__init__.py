@@ -29,20 +29,36 @@ Integration:
 """
 
 from .dictionaries import EthnicityType, NameDictionaries, NameEntry, get_dictionaries
-from .models import (
-    Classification, ClassificationMethod, ConfidenceLevel,
-    ClassificationRequest, BatchClassificationRequest,
-    RuleClassificationDetails, PhoneticClassificationDetails, LLMClassificationDetails,
-    AlternativeClassification, MultiWordNameAnalysis, ValidationResult,
-    ClassificationStats, ClassificationCache
-)
 from .exceptions import (
-    ClassificationError, NameValidationError, DictionaryError,
-    RuleClassificationError, PhoneticMatchingError, LLMClassificationError,
-    CacheIntegrationError, BatchProcessingError, ConfidenceThresholdError
+    BatchProcessingError,
+    CacheIntegrationError,
+    ClassificationError,
+    ConfidenceThresholdError,
+    DictionaryError,
+    LLMClassificationError,
+    NameValidationError,
+    PhoneticMatchingError,
+    RuleClassificationError,
 )
-from .rules import RuleBasedClassifier
+from .models import (
+    AlternativeClassification,
+    BatchClassificationRequest,
+    Classification,
+    ClassificationCache,
+    ClassificationMethod,
+    ClassificationRequest,
+    ClassificationStats,
+    ConfidenceLevel,
+    LLMClassificationDetails,
+    MultiWordNameAnalysis,
+    PhoneticClassificationDetails,
+    RuleClassificationDetails,
+    ValidationResult,
+)
+from .classifier import NameClassifier, create_classifier
+from .llm import LLMClassifier
 from .phonetic import PhoneticClassifier
+from .rules import RuleBasedClassifier
 
 # Version and metadata
 __version__ = "1.0.0"
@@ -53,34 +69,30 @@ __all__ = [
     # Core types
     "EthnicityType",
     "Classification",
-    "ClassificationMethod", 
+    "ClassificationMethod",
     "ConfidenceLevel",
-    
-    # Main classifier (will be implemented next)
-    # "NameClassifier",
-    
+    # Main classifier
+    "NameClassifier",
+    "create_classifier",
     # Component classifiers
     "RuleBasedClassifier",
     "PhoneticClassifier",
-    # "LLMClassifier",       # To be implemented
-    
+    "LLMClassifier",
     # Models
     "ClassificationRequest",
     "BatchClassificationRequest",
     "RuleClassificationDetails",
-    "PhoneticClassificationDetails", 
+    "PhoneticClassificationDetails",
     "LLMClassificationDetails",
     "AlternativeClassification",
     "MultiWordNameAnalysis",
     "ValidationResult",
     "ClassificationStats",
     "ClassificationCache",
-    
     # Dictionaries
     "NameDictionaries",
     "NameEntry",
     "get_dictionaries",
-    
     # Exceptions
     "ClassificationError",
     "NameValidationError",
@@ -112,7 +124,7 @@ ETHNICITY_PRIORITY = [
     EthnicityType.CAPE_MALAY,
     EthnicityType.COLOURED,
     EthnicityType.WHITE,
-    EthnicityType.UNKNOWN
+    EthnicityType.UNKNOWN,
 ]
 
 
@@ -120,7 +132,7 @@ def get_classification_info() -> dict:
     """Get information about the classification module."""
     dictionaries = get_dictionaries()
     coverage = dictionaries.get_ethnicity_coverage()
-    
+
     return {
         "version": __version__,
         "total_names_in_dictionaries": sum(coverage.values()),
@@ -130,8 +142,8 @@ def get_classification_info() -> dict:
             "phonetic_classification_ms": TARGET_PHONETIC_CLASSIFICATION_MS,
             "llm_classification_ms": TARGET_LLM_CLASSIFICATION_MS,
             "cache_hit_rate": TARGET_CACHE_HIT_RATE,
-            "llm_usage_rate": TARGET_LLM_USAGE_RATE
+            "llm_usage_rate": TARGET_LLM_USAGE_RATE,
         },
         "supported_ethnicities": [e.value for e in EthnicityType],
-        "classification_methods": [m.value for m in ClassificationMethod]
+        "classification_methods": [m.value for m in ClassificationMethod],
     }

@@ -21,41 +21,43 @@ Usage:
         # Handle download failure gracefully
 """
 
+from typing import Any, Dict, Optional
+
 from leadscout.core.exceptions import LeadScoutError
 
 
 class CIPCError(LeadScoutError):
     """Base exception for all CIPC-related errors.
-    
+
     This is the parent class for all CIPC module exceptions, allowing
     consumers to catch all CIPC-related errors with a single exception type.
     """
-    
-    def __init__(self, message: str, details: dict = None):
+
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.details = details or {}
 
 
 class CIPCDownloadError(CIPCError):
     """Raised when CSV download operations fail.
-    
+
     This exception is raised for various download-related failures including
     network errors, HTTP errors, file system errors, and invalid responses
     from the CIPC website.
-    
+
     Attributes:
         url: The URL that failed to download
         status_code: HTTP status code (if applicable)
         retry_count: Number of retries attempted
     """
-    
+
     def __init__(
-        self, 
-        message: str, 
-        url: str = None, 
-        status_code: int = None,
+        self,
+        message: str,
+        url: Optional[str] = None,
+        status_code: Optional[int] = None,
         retry_count: int = 0,
-        details: dict = None
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, details)
         self.url = url
@@ -65,24 +67,24 @@ class CIPCDownloadError(CIPCError):
 
 class CIPCParsingError(CIPCError):
     """Raised when CSV parsing or data extraction fails.
-    
+
     This exception is raised when CSV files cannot be parsed correctly,
     when expected columns are missing, or when data extraction algorithms
     encounter malformed company name data.
-    
+
     Attributes:
         file_path: Path to the file that failed to parse
         line_number: Line number where parsing failed (if applicable)
         column_name: Column that caused the parsing error
     """
-    
+
     def __init__(
         self,
         message: str,
-        file_path: str = None,
-        line_number: int = None,
-        column_name: str = None,
-        details: dict = None
+        file_path: Optional[str] = None,
+        line_number: Optional[int] = None,
+        column_name: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, details)
         self.file_path = file_path
@@ -92,23 +94,23 @@ class CIPCParsingError(CIPCError):
 
 class CIPCSearchError(CIPCError):
     """Raised when company search operations fail.
-    
+
     This exception is raised when search queries fail due to database
     connectivity issues, malformed queries, or search algorithm failures.
-    
+
     Attributes:
         query: The search query that failed
         search_type: Type of search operation (fuzzy, exact, etc.)
         index_name: Database index involved in the search
     """
-    
+
     def __init__(
         self,
         message: str,
-        query: str = None,
-        search_type: str = None,
-        index_name: str = None,
-        details: dict = None
+        query: Optional[str] = None,
+        search_type: Optional[str] = None,
+        index_name: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, details)
         self.query = query
@@ -118,24 +120,24 @@ class CIPCSearchError(CIPCError):
 
 class CIPCValidationError(CIPCError):
     """Raised when company data validation fails.
-    
+
     This exception is raised when company registration numbers, company names,
     or other CIPC data fails validation checks or doesn't conform to expected
     South African business registration formats.
-    
+
     Attributes:
         field_name: Name of the field that failed validation
         field_value: Value that failed validation
         validation_rule: Description of the validation rule that failed
     """
-    
+
     def __init__(
         self,
         message: str,
-        field_name: str = None,
-        field_value: str = None,
-        validation_rule: str = None,
-        details: dict = None
+        field_name: Optional[str] = None,
+        field_value: Optional[str] = None,
+        validation_rule: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, details)
         self.field_name = field_name

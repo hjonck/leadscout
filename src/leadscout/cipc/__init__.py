@@ -40,39 +40,38 @@ Usage:
     results = await search_engine.search_companies("ABC Trading CC")
 """
 
-from .models import (
-    CIPCCompany,
-    PersonalName,
-    CompanySearchRequest,
-    CompanySearchResponse,
-    CompanyMatch,
-    CIPCDownloadBatch,
-    SearchFilters,
-    CIPCProcessingStats
-)
-
 from .exceptions import (
-    CIPCError,
     CIPCDownloadError,
+    CIPCError,
     CIPCParsingError,
     CIPCSearchError,
-    CIPCValidationError
+    CIPCValidationError,
+)
+from .models import (
+    CIPCCompany,
+    CIPCDownloadBatch,
+    CIPCProcessingStats,
+    CompanyMatch,
+    CompanySearchRequest,
+    CompanySearchResponse,
+    PersonalName,
+    SearchFilters,
 )
 
 __all__ = [
     # Models
-    'CIPCCompany',
-    'PersonalName', 
-    'CompanySearchRequest',
-    'CompanySearchResponse',
-    'CompanyMatch',
-    'CIPCDownloadBatch',
-    'SearchFilters',
-    'CIPCProcessingStats',
+    "CIPCCompany",
+    "PersonalName",
+    "CompanySearchRequest",
+    "CompanySearchResponse",
+    "CompanyMatch",
+    "CIPCDownloadBatch",
+    "SearchFilters",
+    "CIPCProcessingStats",
     # Exceptions
-    'CIPCError',
-    'CIPCDownloadError', 
-    'CIPCParsingError',
-    'CIPCSearchError',
-    'CIPCValidationError'
+    "CIPCError",
+    "CIPCDownloadError",
+    "CIPCParsingError",
+    "CIPCSearchError",
+    "CIPCValidationError",
 ]

@@ -4,13 +4,13 @@ This module contains all data models used throughout the LeadScout system.
 All models use Pydantic for validation and type safety.
 """
 
-from .lead import Lead, EnrichedLead
 from .classification import Classification, EthnicityType
 from .contact import ContactInfo, ContactValidation
+from .lead import EnrichedLead, Lead
 
 __all__ = [
     "Lead",
-    "EnrichedLead", 
+    "EnrichedLead",
     "Classification",
     "EthnicityType",
     "ContactInfo",

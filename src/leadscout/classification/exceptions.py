@@ -19,18 +19,18 @@ Integration: Inherits from core LeadScout exceptions to maintain consistency
 across the entire application.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 
 class ClassificationError(Exception):
     """Base exception for classification system errors."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: Optional[str] = None,
         method: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message)
         self.name = name
@@ -40,13 +40,13 @@ class ClassificationError(Exception):
 
 class NameValidationError(ClassificationError):
     """Exception raised when name validation fails."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
         validation_errors: List[str],
-        suggested_corrections: Optional[List[str]] = None
+        suggested_corrections: Optional[List[str]] = None,
     ):
         super().__init__(message, name=name)
         self.validation_errors = validation_errors
@@ -55,12 +55,12 @@ class NameValidationError(ClassificationError):
 
 class DictionaryError(ClassificationError):
     """Exception raised when dictionary operations fail."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         dictionary_type: Optional[str] = None,
-        missing_files: Optional[List[str]] = None
+        missing_files: Optional[List[str]] = None,
     ):
         super().__init__(message)
         self.dictionary_type = dictionary_type
@@ -69,12 +69,12 @@ class DictionaryError(ClassificationError):
 
 class RuleClassificationError(ClassificationError):
     """Exception raised during rule-based classification."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
-        conflicting_matches: Optional[List[Dict[str, Any]]] = None
+        conflicting_matches: Optional[List[Dict[str, Any]]] = None,
     ):
         super().__init__(message, name=name, method="rule_based")
         self.conflicting_matches = conflicting_matches or []
@@ -82,13 +82,13 @@ class RuleClassificationError(ClassificationError):
 
 class PhoneticMatchingError(ClassificationError):
     """Exception raised during phonetic matching."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
         failed_algorithms: Optional[List[str]] = None,
-        partial_results: Optional[Dict[str, Any]] = None
+        partial_results: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, name=name, method="phonetic")
         self.failed_algorithms = failed_algorithms or []
@@ -97,14 +97,14 @@ class PhoneticMatchingError(ClassificationError):
 
 class LLMClassificationError(ClassificationError):
     """Exception raised during LLM classification."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: Optional[str] = None,
         model: Optional[str] = None,
         api_response: Optional[str] = None,
-        retry_count: int = 0
+        retry_count: int = 0,
     ):
         super().__init__(message, name=name, method="llm")
         self.model = model
@@ -114,12 +114,12 @@ class LLMClassificationError(ClassificationError):
 
 class LLMRateLimitError(LLMClassificationError):
     """Exception raised when LLM API rate limits are exceeded."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         retry_after_seconds: Optional[int] = None,
-        daily_limit_exceeded: bool = False
+        daily_limit_exceeded: bool = False,
     ):
         super().__init__(message)
         self.retry_after_seconds = retry_after_seconds
@@ -128,13 +128,13 @@ class LLMRateLimitError(LLMClassificationError):
 
 class LLMCostLimitError(LLMClassificationError):
     """Exception raised when LLM usage exceeds cost limits."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         current_cost: float,
         cost_limit: float,
-        tokens_used: int
+        tokens_used: int,
     ):
         super().__init__(message)
         self.current_cost = current_cost
@@ -144,13 +144,13 @@ class LLMCostLimitError(LLMClassificationError):
 
 class CacheIntegrationError(ClassificationError):
     """Exception raised when cache integration fails."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         cache_operation: str,
         name: Optional[str] = None,
-        cache_details: Optional[Dict[str, Any]] = None
+        cache_details: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(message, name=name)
         self.cache_operation = cache_operation
@@ -159,14 +159,14 @@ class CacheIntegrationError(ClassificationError):
 
 class BatchProcessingError(ClassificationError):
     """Exception raised during batch processing operations."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         batch_size: int,
         processed_count: int,
         failed_names: List[str],
-        partial_results: Optional[List[Dict[str, Any]]] = None
+        partial_results: Optional[List[Dict[str, Any]]] = None,
     ):
         super().__init__(message)
         self.batch_size = batch_size
@@ -177,14 +177,14 @@ class BatchProcessingError(ClassificationError):
 
 class ConfidenceThresholdError(ClassificationError):
     """Exception raised when classification confidence is below required threshold."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
         achieved_confidence: float,
         required_confidence: float,
-        method: str
+        method: str,
     ):
         super().__init__(message, name=name, method=method)
         self.achieved_confidence = achieved_confidence
@@ -193,14 +193,14 @@ class ConfidenceThresholdError(ClassificationError):
 
 class AugmentedRetrievalError(ClassificationError):
     """Exception raised when augmented retrieval for few-shot learning fails."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
         search_method: str,
         examples_found: int,
-        minimum_required: int
+        minimum_required: int,
     ):
         super().__init__(message, name=name)
         self.search_method = search_method
@@ -210,13 +210,13 @@ class AugmentedRetrievalError(ClassificationError):
 
 class MultiWordAnalysisError(ClassificationError):
     """Exception raised during multi-word name analysis."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         name: str,
         name_parts: List[str],
-        individual_errors: List[str]
+        individual_errors: List[str],
     ):
         super().__init__(message, name=name)
         self.name_parts = name_parts
@@ -225,13 +225,13 @@ class MultiWordAnalysisError(ClassificationError):
 
 class EthnicityMappingError(ClassificationError):
     """Exception raised when ethnicity mapping or conversion fails."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         source_ethnicity: str,
         target_system: str,
-        available_mappings: Optional[List[str]] = None
+        available_mappings: Optional[List[str]] = None,
     ):
         super().__init__(message)
         self.source_ethnicity = source_ethnicity
@@ -241,12 +241,12 @@ class EthnicityMappingError(ClassificationError):
 
 class ConfigurationError(ClassificationError):
     """Exception raised when classification system configuration is invalid."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         config_section: str,
-        invalid_values: Optional[Dict[str, str]] = None
+        invalid_values: Optional[Dict[str, str]] = None,
     ):
         super().__init__(message)
         self.config_section = config_section
@@ -255,14 +255,14 @@ class ConfigurationError(ClassificationError):
 
 class PerformanceError(ClassificationError):
     """Exception raised when performance targets are not met."""
-    
+
     def __init__(
-        self, 
-        message: str, 
+        self,
+        message: str,
         operation: str,
         actual_time_ms: float,
         target_time_ms: float,
-        performance_impact: str
+        performance_impact: str,
     ):
         super().__init__(message)
         self.operation = operation
@@ -273,12 +273,13 @@ class PerformanceError(ClassificationError):
 
 # Convenience functions for common error scenarios
 
+
 def raise_invalid_name(name: str, reason: str) -> None:
     """Raise NameValidationError for invalid names."""
     raise NameValidationError(
         f"Invalid name '{name}': {reason}",
         name=name,
-        validation_errors=[reason]
+        validation_errors=[reason],
     )
 
 
@@ -287,15 +288,12 @@ def raise_cache_miss(name: str, cache_operation: str) -> None:
     raise CacheIntegrationError(
         f"Cache miss for name '{name}' during {cache_operation}",
         cache_operation=cache_operation,
-        name=name
+        name=name,
     )
 
 
 def raise_low_confidence(
-    name: str, 
-    method: str, 
-    confidence: float, 
-    threshold: float
+    name: str, method: str, confidence: float, threshold: float
 ) -> None:
     """Raise ConfidenceThresholdError for low confidence results."""
     raise ConfidenceThresholdError(
@@ -303,15 +301,12 @@ def raise_low_confidence(
         name=name,
         achieved_confidence=confidence,
         required_confidence=threshold,
-        method=method
+        method=method,
     )
 
 
 def raise_llm_failure(
-    name: str, 
-    model: str, 
-    error_details: str,
-    retry_count: int = 0
+    name: str, model: str, error_details: str, retry_count: int = 0
 ) -> None:
     """Raise LLMClassificationError for LLM API failures."""
     raise LLMClassificationError(
@@ -319,18 +314,16 @@ def raise_llm_failure(
         name=name,
         model=model,
         api_response=error_details,
-        retry_count=retry_count
+        retry_count=retry_count,
     )
 
 
 def raise_phonetic_failure(
-    name: str, 
-    algorithms: List[str], 
-    error_details: str
+    name: str, algorithms: List[str], error_details: str
 ) -> None:
     """Raise PhoneticMatchingError for phonetic algorithm failures."""
     raise PhoneticMatchingError(
         f"Phonetic matching failed for '{name}': {error_details}",
         name=name,
-        failed_algorithms=algorithms
+        failed_algorithms=algorithms,
     )
