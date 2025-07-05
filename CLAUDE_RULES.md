@@ -88,7 +88,27 @@ from leadscout.models.lead import Lead
 - **ALWAYS** consider the pluggable architecture
 - **ALWAYS** think about caching and performance
 
-### 2. Adding New Features
+### 2. Project Estimation Policy
+- **FORBIDDEN**: Time estimates for development tasks
+- **REASON**: Time estimates are unreliable and create false expectations
+- **INSTEAD**: Focus on priority order and completion criteria
+- **ALLOWED**: Complexity assessment (simple/moderate/complex)
+
+### 3. Virtual Environment Management
+- **MANDATORY**: Always use local project virtual environment `.venv`
+- **ACTIVATION**: All Python commands must use `source .venv/bin/activate &&` prefix
+- **INSTALLATION**: Use Poetry within the activated virtual environment
+- **FORBIDDEN**: Global package installations or system Python usage
+- **ISOLATION**: Each project must have its own isolated environment
+
+### 4. Project Tracking System
+- **MANDATORY**: Use `PROJECT_PLAN.md` for all project planning and tracking
+- **LOCATION**: Root directory of project
+- **FORMAT**: Structured markdown with phases, tasks, and completion status
+- **UPDATES**: Must be updated with every significant development session
+- **NEVER**: Use external project management tools for core planning
+
+### 5. Adding New Features
 1. Create/update data models in `models/`
 2. Implement core logic in appropriate module
 3. Add CLI interface in `cli/`
@@ -111,14 +131,15 @@ from leadscout.models.lead import Lead
 - **PERFORMANCE TARGET**: <5% LLM calls after cache warmup
 
 ### 2. Lead Enrichment Pipeline
-- **DATA SOURCES**: CIPC/CIPRO, Website Discovery, LinkedIn, Contact Validation
+- **DATA SOURCES**: Website Discovery, LinkedIn, Contact Validation, Name Classification
+- **CIPC/CIPRO**: Not in scope for first release (future enhancement)
 - **PROCESSING**: Async batch processing with configurable concurrency
 - **ERROR HANDLING**: Graceful degradation, partial results on failures
 - **CACHING**: 30-day TTL for all external API results
 
 ### 3. Scoring System
 - **ARCHITECTURE**: Pluggable scoring modules with weight configuration
-- **DEFAULT WEIGHTS**: CIPC(30%), Website(25%), LinkedIn(25%), Contact Quality(20%)
+- **DEFAULT WEIGHTS**: Name Classification(30%), Website(30%), LinkedIn(25%), Contact Quality(15%)
 - **OUTPUT**: Normalized scores 0-100 with confidence levels
 - **EXTENSIBILITY**: Easy addition of new scoring criteria
 

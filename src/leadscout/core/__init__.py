@@ -1,0 +1,1 @@
+"""LeadScout core functionality."""
