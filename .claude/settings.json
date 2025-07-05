@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(poetry run *)",
+      "Bash(pytest *)",
+      "Bash(black *)",
+      "Bash(isort *)",
+      "Bash(flake8 *)",
+      "Bash(mypy *)",
+      "Bash(git *)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "MultiEdit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "LS(*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(sudo *)"
+    ]
+  },
+  "env": {
+    "PYTHONPATH": "./src",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"
+  },
+  "workingDirectory": ".",
+  "description": "LeadScout AI-Powered Lead Enrichment System - Safe development environment with poetry, testing, and git operations allowed"
+}

@@ -230,3 +230,24 @@ poetry run leadscout config set openai_api_key YOUR_KEY
 ```
 
 This document serves as the comprehensive guide for all development activities on the LeadScout project. All code must align with these standards and architecture decisions.
+
+## Claude Development Rules
+
+**CRITICAL**: Read and follow these mandatory rules for all development work:
+
+@CLAUDE_RULES.md
+@docs/coding-standards.md
+
+### Session Startup Checklist
+1. **ALWAYS** read CLAUDE.md first for full project context
+2. **ALWAYS** review CLAUDE_RULES.md for development standards
+3. **ALWAYS** check recent commits and current branch status
+4. **ALWAYS** run tests before making any changes
+5. **NEVER** deviate from established architecture patterns
+
+### Quality Gates (Non-Negotiable)
+- All functions must have type hints and docstrings
+- Minimum 80% test coverage for new code
+- Black/isort/flake8 compliance required
+- No hardcoded credentials or sensitive data
+- Async patterns for all I/O operations

@@ -185,6 +185,9 @@ config/secrets.yml
 config/local.yml
 private_config.yml
 
+# Claude Code local settings (keep shared settings)
+.claude/settings.local.json
+
 # Output files
 enriched_*.xlsx
 processed_*.xlsx
