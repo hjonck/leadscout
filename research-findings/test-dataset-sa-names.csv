@@ -1,0 +1,106 @@
+Name,Ethnicity,Gender,Language_Group,Confidence_Level,Notes
+Thabo Mthembu,African,Male,Zulu,100,Common Zulu name
+Nomsa Dlamini,African,Female,Zulu,100,Traditional Zulu female name
+Sipho Ndlovu,African,Male,Zulu,100,Very common Zulu name
+Zanele Khumalo,African,Female,Zulu,100,Popular Zulu female name
+Mandla Nkosi,African,Male,Zulu,100,Traditional Zulu male name
+Ntombifuthi Cele,African,Female,Zulu,100,Traditional Zulu female name
+Bongani Zondi,African,Male,Zulu,100,Common Zulu name
+Nokuthula Majola,African,Female,Zulu,100,Traditional Zulu female name
+Sizani Hadebe,African,Female,Zulu,100,Common Zulu name
+Mthunzi Shange,African,Male,Zulu,100,Traditional Zulu male name
+Lerato Molefe,African,Female,Sotho,100,Common Sotho name
+Tshepo Mahlangu,African,Male,Sotho,100,Popular Sotho male name
+Dineo Mokoena,African,Female,Sotho,100,Modern Sotho female name
+Kgotso Mthembu,African,Male,Sotho,100,Traditional Sotho name
+Palesa Radebe,African,Female,Sotho,100,Common Sotho female name
+Tebogo Mashaba,African,Male,Sotho,100,Popular Sotho name
+Mmabatho Mokone,African,Female,Sotho,100,Traditional Sotho female name
+Kabelo Sebetha,African,Male,Sotho,100,Common Sotho name
+Refiloe Motaung,African,Female,Sotho,100,Modern Sotho female name
+Tumelo Mofokeng,African,Male,Sotho,100,Popular Sotho male name
+Thandiwe Mbeki,African,Female,Xhosa,100,Traditional Xhosa name
+Xolani Mthembu,African,Male,Xhosa,100,Common Xhosa name
+Nomakhaya Tyulu,African,Female,Xhosa,100,Traditional Xhosa female name
+Luthando Gqubule,African,Male,Xhosa,100,Modern Xhosa name
+Yolisa Mabandla,African,Female,Xhosa,100,Traditional Xhosa female name
+Sandile Mayekiso,African,Male,Xhosa,100,Common Xhosa name
+Zandile Shiceka,African,Female,Xhosa,100,Popular Xhosa female name
+Mcebisi Ndletyana,African,Male,Xhosa,100,Traditional Xhosa name
+Nontobeko Mthembu,African,Female,Xhosa,100,Traditional Xhosa female name
+Monde Gaduka,African,Male,Xhosa,100,Common Xhosa name
+Priya Patel,Indian,Female,Gujarati,100,Common Indian name in SA
+Raj Maharaj,Indian,Male,Hindi,100,Traditional Indian name
+Kavitha Naidoo,Indian,Female,Tamil,100,South Indian name common in SA
+Anil Reddy,Indian,Male,Telugu,100,Common Telugu name
+Deepa Sharma,Indian,Female,Hindi,100,Popular North Indian name
+Sunil Govind,Indian,Male,Tamil,100,Common Tamil name in SA
+Meera Ramesh,Indian,Female,Tamil,100,Traditional Tamil female name
+Rohit Chandra,Indian,Male,Hindi,100,Modern Indian name
+Anjali Mohan,Indian,Female,Hindi,100,Popular Indian female name
+Vikram Singh,Indian,Male,Punjabi,100,Common Punjabi name
+Rasheed Desai,Indian,Male,Gujarati,100,Muslim Indian name
+Fatima Kalla,Indian,Female,Gujarati,100,Muslim Indian female name
+Tariq Mayat,Indian,Male,Gujarati,100,Muslim Indian name common in SA
+Amina Cachalia,Indian,Female,Gujarati,100,Historical SA Indian name
+Zubair Kathrada,Indian,Male,Gujarati,100,Historical SA Indian name
+Ashwin Willemse,Mixed,Male,Mixed,95,Coloured surname with Indian first name
+Zakia Hendricks,Mixed,Female,Mixed,95,Muslim name with Coloured surname
+Ebrahim Samuels,Mixed,Male,Mixed,95,Muslim first name with Coloured surname
+Gavin Petersen,Mixed,Male,Mixed,95,European first name with Coloured surname
+Shireen Adams,Mixed,Female,Mixed,95,Muslim name with Coloured surname
+Ashley September,Mixed,Male,Mixed,95,European name with month surname
+Bronwyn October,Mixed,Female,Mixed,95,European name with month surname
+Ricardo November,Mixed,Male,Mixed,95,European name with month surname
+Bianca December,Mixed,Female,Mixed,95,European name with month surname
+Keegan January,Mixed,Male,Mixed,95,European name with month surname
+Cheryl February,Mixed,Female,Mixed,95,European name with month surname
+Quinton March,Mixed,Male,Mixed,95,European name with month surname
+Natalie April,Mixed,Female,Mixed,95,European name with month surname
+Dylan May,Mixed,Male,Mixed,95,European name with month surname
+Rochelle June,Mixed,Female,Mixed,95,European name with month surname
+Tariq July,Mixed,Male,Mixed,95,Muslim name with month surname
+Yasmeen August,Mixed,Female,Mixed,95,Muslim name with month surname
+Mogamat Jacobs,Mixed,Male,Mixed,95,Muslim name with Coloured surname
+Soraya Davids,Mixed,Female,Mixed,95,Muslim name with Coloured surname
+Gadija Salie,Mixed,Female,Mixed,95,Muslim name with Coloured surname
+Pieter van der Merwe,White,Male,Afrikaans,100,Traditional Afrikaans name
+Susanna de Klerk,White,Female,Afrikaans,100,Traditional Afrikaans female name
+Johannes Steyn,White,Male,Afrikaans,100,Common Afrikaans name
+Maryke Kruger,White,Female,Afrikaans,100,Modern Afrikaans female name
+Hennie Botha,White,Male,Afrikaans,100,Traditional Afrikaans name
+Lizette Fourie,White,Female,Afrikaans,100,Popular Afrikaans female name
+Kobus Swanepoel,White,Male,Afrikaans,100,Traditional Afrikaans name
+Annelie Viljoen,White,Female,Afrikaans,100,Modern Afrikaans female name
+Francois Oosthuizen,White,Male,Afrikaans,100,Popular Afrikaans name
+Elmarie Pretorius,White,Female,Afrikaans,100,Common Afrikaans female name
+James Smith,White,Male,English,100,Common English name
+Sarah Johnson,White,Female,English,100,Traditional English female name
+Michael Brown,White,Male,English,100,Popular English name
+Jennifer Davis,White,Female,English,100,Common English female name
+David Wilson,White,Male,English,100,Traditional English name
+Catherine Miller,White,Female,English,100,Popular English female name
+Robert Taylor,White,Male,English,100,Common English name
+Amanda Thompson,White,Female,English,100,Modern English female name
+Christopher Anderson,White,Male,English,100,Popular English name
+Michelle Roberts,White,Female,English,100,Common English female name
+Abdul Moosa,Muslim,Male,Arabic,100,Common Muslim name in SA
+Khadija Essop,Muslim,Female,Arabic,100,Traditional Muslim female name
+Ahmed Bhamjee,Muslim,Male,Arabic,100,Muslim name with Indian influence
+Fatima Suliman,Muslim,Female,Arabic,100,Popular Muslim female name
+Yusuf Dadoo,Muslim,Male,Arabic,100,Historical SA Muslim name
+Zahra Motala,Muslim,Female,Arabic,100,Common Muslim female name
+Ebrahim Saloojee,Muslim,Male,Arabic,100,Traditional Muslim name
+Ayesha Asmal,Muslim,Female,Arabic,100,Popular Muslim female name
+Ismail Coovadia,Muslim,Male,Arabic,100,Muslim name with Indian influence
+Safiyya Patel,Muslim,Female,Arabic,100,Muslim name with Indian surname
+Mogamat Hendricks,Muslim,Male,Arabic,100,Cape Muslim name
+Gadija Abrahams,Muslim,Female,Arabic,100,Cape Muslim female name
+Shamiel Samaai,Muslim,Male,Arabic,100,Cape Muslim name
+Riedaa Davids,Muslim,Female,Arabic,100,Cape Muslim female name
+Nazeem Samsodien,Muslim,Male,Arabic,100,Cape Muslim name
+Ashraf Cassiem,Muslim,Male,Arabic,100,Cape Muslim name
+Fahmeda Isaacs,Muslim,Female,Arabic,100,Cape Muslim female name
+Waheeda Salie,Muslim,Female,Arabic,100,Cape Muslim female name
+Mogamat Galant,Muslim,Male,Arabic,100,Cape Muslim name
+Kauthar Abrahams,Muslim,Female,Arabic,100,Cape Muslim female name
