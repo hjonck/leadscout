@@ -108,14 +108,38 @@ from leadscout.models.lead import Lead
 - **UPDATES**: Must be updated with every significant development session
 - **NEVER**: Use external project management tools for core planning
 
-### 5. Adding New Features
+### 5. File Documentation Standards
+- **MANDATORY**: Every source file must begin with comprehensive module docstring
+- **FORMAT**: Multi-line docstring explaining purpose, architecture, and key components
+- **CONTENT REQUIREMENTS**:
+  - What the module does and why it exists
+  - Key classes, functions, and their relationships
+  - Integration points with other modules
+  - Usage examples for complex functionality
+  - Architecture decisions and design patterns used
+- **SESSION EFFICIENCY**: Docstrings must enable Claude sessions to understand module purpose instantly
+- **DEVELOPER HANDOFF**: Docstrings must enable seamless work distribution between Claude developers
+
+### 6. Multi-Claude Development Framework
+- **PROJECT MANAGER ROLE**: One Claude session acts as Project Manager/Technical Lead
+- **DEVELOPER ROLES**: Two specialist Claude developers handle specific modules
+- **TASK DISTRIBUTION**: Use `dev-tasks/` directory for developer assignments
+- **COMMUNICATION**: All coordination via structured markdown files
+- **VERIFICATION**: Project Manager validates all developer work before integration
+- **SPECIALIZATION**: 
+  - Developer A: CIPC Integration & Caching System
+  - Developer B: Name Classification & Enrichment Pipeline
+
+### 7. Adding New Features
 1. Create/update data models in `models/`
 2. Implement core logic in appropriate module
 3. Add CLI interface in `cli/`
 4. Write comprehensive tests
 5. Update documentation
 
-### 3. API Integrations
+## API Integration Rules
+
+### 1. API Integrations
 - **REQUIRED**: Use httpx async client
 - **REQUIRED**: Implement retry logic with exponential backoff
 - **REQUIRED**: Rate limiting for all external APIs
@@ -131,15 +155,16 @@ from leadscout.models.lead import Lead
 - **PERFORMANCE TARGET**: <5% LLM calls after cache warmup
 
 ### 2. Lead Enrichment Pipeline
-- **DATA SOURCES**: Website Discovery, LinkedIn, Contact Validation, Name Classification
-- **CIPC/CIPRO**: Not in scope for first release (future enhancement)
+- **DATA SOURCES**: CIPC Registry, Name Classification, Website Discovery, LinkedIn, Contact Validation
+- **CIPC INTEGRATION**: Priority data source using monthly CSV downloads (26 files by letter)
+- **CIPC URL PATTERN**: `https://www.cipc.co.za/wp-content/uploads/<YYYY>/<MM>/List-<N>.csv`
 - **PROCESSING**: Async batch processing with configurable concurrency
 - **ERROR HANDLING**: Graceful degradation, partial results on failures
-- **CACHING**: 30-day TTL for all external API results
+- **CACHING**: 30-day TTL for external APIs, persistent cache for CIPC data
 
 ### 3. Scoring System
 - **ARCHITECTURE**: Pluggable scoring modules with weight configuration
-- **DEFAULT WEIGHTS**: Name Classification(30%), Website(30%), LinkedIn(25%), Contact Quality(15%)
+- **DEFAULT WEIGHTS**: CIPC Match(25%), Name Classification(25%), Website(25%), LinkedIn(15%), Contact Quality(10%)
 - **OUTPUT**: Normalized scores 0-100 with confidence levels
 - **EXTENSIBILITY**: Easy addition of new scoring criteria
 

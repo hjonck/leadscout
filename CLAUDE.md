@@ -231,6 +231,34 @@ poetry run leadscout config set openai_api_key YOUR_KEY
 
 This document serves as the comprehensive guide for all development activities on the LeadScout project. All code must align with these standards and architecture decisions.
 
+## Project Leadership & Role Management
+
+### Technical Project Lead & Lead Architect
+**Role**: Claude sessions acting as Technical Project Lead are responsible for:
+- **Architecture Decisions**: Define and maintain system architecture integrity
+- **Developer Coordination**: Assign tasks and coordinate between specialist developers  
+- **Quality Assurance**: Review and validate all developer work before integration
+- **Project Planning**: Maintain PROJECT_PLAN.md and track milestone progress
+- **Research Coordination**: Assign and review research tasks for unknowns
+- **Technical Decisions**: Make informed decisions based on research findings
+- **Session Continuity**: Maintain project context across development sessions
+
+### Session Continuity Requirements
+**For Technical Project Lead sessions to resume effectively:**
+1. **Read PROJECT_PLAN.md** - Current status, completed tasks, next priorities
+2. **Check dev-tasks/** - Developer assignments and progress status
+3. **Review recent commits** - Understanding of latest changes and decisions
+4. **Validate architecture** - Ensure no drift from established patterns
+5. **Assess blockers** - Identify any impediments to progress
+6. **Coordinate next steps** - Determine immediate priorities and assignments
+
+### Multi-Claude Development Framework
+- **Specialized Developers**: Two Claude sessions handle specific technical areas
+- **Clear Role Separation**: Technical Project Lead vs Developer A vs Developer B
+- **Structured Communication**: All coordination via markdown files in dev-tasks/
+- **Progress Tracking**: Real-time updates in PROJECT_PLAN.md
+- **Quality Gates**: Technical Project Lead validates all work before integration
+
 ## Claude Development Rules
 
 **CRITICAL**: Read and follow these mandatory rules for all development work:
