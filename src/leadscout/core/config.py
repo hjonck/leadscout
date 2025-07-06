@@ -10,6 +10,10 @@ from typing import Any, Dict, Optional
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
+
+# Load .env file immediately
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -45,6 +49,9 @@ class Settings(BaseSettings):
     claude_api_key: Optional[SecretStr] = Field(
         default=None,
         description="Claude API key for alternative classification",
+    )
+    anthropic_api_key: Optional[SecretStr] = Field(
+        default=None, description="Anthropic API key for Claude classification"
     )
 
     # Cache Configuration
@@ -87,6 +94,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         env_prefix="LEADSCOUT_",
+        extra="allow",  # Temporary - allow extra fields during transition
     )
 
     @field_validator("cache_dir")
@@ -144,13 +152,25 @@ class Settings(BaseSettings):
             else None
         )
 
+    def get_anthropic_key(self) -> Optional[str]:
+        """Get Anthropic API key value.
+
+        Returns:
+            API key string or None if not set
+        """
+        return (
+            self.anthropic_api_key.get_secret_value()
+            if self.anthropic_api_key
+            else None
+        )
+
     def has_llm_keys(self) -> bool:
         """Check if at least one LLM API key is configured.
 
         Returns:
             True if any LLM API key is available
         """
-        return bool(self.get_openai_key() or self.get_claude_key())
+        return bool(self.get_openai_key() or self.get_claude_key() or self.get_anthropic_key())
 
     def get_cache_db_path(self) -> Path:
         """Get path to SQLite cache database.
@@ -251,7 +271,7 @@ def get_settings(config_file: Optional[Path] = None) -> Settings:
         # TODO: Implement config file loading
         pass
 
-    return Settings(openai_api_key=None, claude_api_key=None)
+    return Settings()
 
 
 def load_config_file(config_path: Path) -> Dict[str, Any]:

@@ -163,6 +163,7 @@ class LLMClassificationDetails(BaseModel):
     prompt_tokens: int = Field(..., description="Tokens in prompt")
     completion_tokens: int = Field(..., description="Tokens in completion")
     total_cost: Optional[float] = None
+    cost_usd: Optional[float] = None  # Added for compatibility with LLM module
     few_shot_examples: List[Dict[str, Any]] = Field(default_factory=list)
     raw_response: Optional[str] = None
     reasoning: Optional[str] = None

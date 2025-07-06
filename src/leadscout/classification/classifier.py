@@ -106,7 +106,7 @@ class NameClassifier:
         self.phonetic_confidence_threshold = phonetic_confidence_threshold
         self.llm_confidence_threshold = llm_confidence_threshold
         self.enable_caching = enable_caching
-        self.enable_llm = enable_llm
+        self._llm_enabled = enable_llm
         self.max_llm_cost_per_session = max_llm_cost_per_session
         
         # Initialize component classifiers
@@ -115,13 +115,22 @@ class NameClassifier:
         
         # Initialize LLM classifier only if enabled
         self.llm_classifier: Optional[LLMClassifier] = None
-        if self.enable_llm:
+        if self._llm_enabled:
             try:
-                self.llm_classifier = LLMClassifier()
+                # Get API keys from config
+                settings = get_settings()
+                claude_key = settings.get_anthropic_key()
+                openai_key = settings.get_openai_key()
+                
+                # Initialize with API keys from config
+                self.llm_classifier = LLMClassifier(
+                    claude_api_key=claude_key,
+                    openai_api_key=openai_key
+                )
                 logger.info("LLM classifier initialized successfully")
             except Exception as e:
                 logger.warning(f"Failed to initialize LLM classifier: {e}")
-                self.enable_llm = False
+                self._llm_enabled = False
         
         # Session tracking
         self.current_session = ClassificationSession()
@@ -214,7 +223,7 @@ class NameClassifier:
                 self.current_session.errors.append(f"Phonetic error: {str(e)[:100]}")
             
             # Layer 3: LLM classification (if enabled and within cost limits)
-            if (self.enable_llm and 
+            if (self._llm_enabled and 
                 self.llm_classifier and 
                 self.current_session.llm_cost_usd < self.max_llm_cost_per_session):
                 
@@ -226,7 +235,8 @@ class NameClassifier:
                     
                     # Track LLM cost
                     if hasattr(result, 'llm_details') and result.llm_details:
-                        self.current_session.llm_cost_usd += result.llm_details.cost_usd
+                        cost = getattr(result.llm_details, 'cost_usd', None) or getattr(result.llm_details, 'total_cost', 0.0)
+                        self.current_session.llm_cost_usd += cost
                     
                     if result and result.confidence >= self.llm_confidence_threshold:
                         self.current_session.llm_hits += 1
@@ -398,7 +408,7 @@ class NameClassifier:
             "enabled_layers": {
                 "rule_based": True,
                 "phonetic": True,
-                "llm": self.enable_llm,
+                "llm": self._llm_enabled,
                 "caching": self.enable_caching,
             },
             "confidence_thresholds": {
@@ -419,6 +429,50 @@ class NameClassifier:
                 ),
             },
         }
+    
+    @property
+    def llm_enabled(self) -> bool:
+        """Check if LLM is currently enabled."""
+        return self._llm_enabled
+    
+    def enable_llm(self) -> bool:
+        """Enable LLM fallback classification.
+        
+        This method initializes the LLM classifier if it's not already available
+        and enables LLM fallback for unknown names.
+        
+        Returns:
+            True if LLM was enabled successfully, False otherwise
+        """
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()  # Ensure .env is loaded
+            
+            # Initialize LLM classifier if not available
+            if self.llm_classifier is None:
+                from .llm import LLMClassifier
+                
+                # Get API keys from config
+                settings = get_settings()
+                claude_key = settings.get_anthropic_key()
+                openai_key = settings.get_openai_key()
+                
+                # Initialize with API keys from config
+                self.llm_classifier = LLMClassifier(
+                    claude_api_key=claude_key,
+                    openai_api_key=openai_key
+                )
+                logger.info("LLM classifier initialized successfully")
+            
+            # Enable LLM usage
+            self._llm_enabled = True
+            logger.info("LLM fallback enabled successfully")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Failed to enable LLM: {e}")
+            self._llm_enabled = False
+            return False
 
 
 # Factory function for easy instantiation with different configurations

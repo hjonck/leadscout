@@ -29,11 +29,39 @@
 - **MANDATORY**: Structured logging with context
 - **FORBIDDEN**: Wildcard imports, hardcoded credentials, print statements
 
-### 3. Testing Requirements
+### 3. Verification and Skepticism Requirement
+- **CRITICAL RULE**: **NEVER ASSUME ANYTHING WORKS** until tested and verified
+- **MANDATORY**: Test all code changes with actual test cases before claiming success
+- **FORBIDDEN**: Over-optimistic assumptions about functionality without verification
+- **REQUIRED**: Skeptical approach - expect things to fail until proven otherwise
+- **REQUIRED**: Verify all fixes with concrete test execution and results
+- **FORBIDDEN**: Saying "this should work" or "expected to work" without testing
+- **MANDATORY**: Provide actual test results and evidence when reporting functionality
+
+### 4. Testing Requirements
 - **MINIMUM**: 80% code coverage for all new code
 - **REQUIRED**: Unit tests for all business logic
 - **REQUIRED**: Integration tests for API interactions
 - **REQUIRED**: Parametrized tests for classification algorithms
+- **CRITICAL**: All fixes must be validated with test execution before reporting success
+
+### 5. Background Processing and Logging Requirements
+- **MANDATORY**: All long-running scripts must support background execution
+- **REQUIRED**: All scripts must output to structured log files, not just stdout
+- **REQUIRED**: Progress monitoring capabilities for long-running operations
+- **MANDATORY**: Separate debug and production logging levels
+- **REQUIRED**: Meaningful production output with minimal noise
+- **FORBIDDEN**: Scripts that timeout or block interactive sessions
+- **REQUIRED**: Async processing with proper timeout handling for batch operations
+
+### 6. Structured Logging Standards (Based on Review Team Feedback)
+- **MANDATORY**: Use `structlog` for all logging (not basic `logging.getLogger`)
+- **REQUIRED**: Include structured context in all log messages
+- **REQUIRED**: Environment-specific logging configuration (JSON for prod, console for dev)
+- **MANDATORY**: Create centralized logging setup in `src/leadscout/core/logging.py`
+- **REQUIRED**: Add logging configuration to Settings class
+- **FORBIDDEN**: Print statements or unstructured logging in production code
+- **REQUIRED**: Log rotation and proper file organization
 
 ## File and Folder Conventions
 
@@ -87,6 +115,9 @@ from leadscout.models.lead import Lead
 - **ALWAYS** review existing patterns before implementing new ones
 - **ALWAYS** consider the pluggable architecture
 - **ALWAYS** think about caching and performance
+- **MANDATORY**: Start with skeptical mindset - assume existing code may have issues
+- **REQUIRED**: Plan test cases before writing implementation code
+- **FORBIDDEN**: Assuming anything works without verification
 
 ### 2. Project Estimation Policy
 - **FORBIDDEN**: Time estimates for development tasks
@@ -130,12 +161,22 @@ from leadscout.models.lead import Lead
   - Developer A: CIPC Integration & Caching System
   - Developer B: Name Classification & Enrichment Pipeline
 
-### 7. Adding New Features
+### 7. Verification and Testing Workflow (MANDATORY)
+- **CRITICAL**: Every fix, feature, or change MUST be verified with test execution
+- **FORBIDDEN**: Claiming something is "fixed" or "working" without running tests
+- **REQUIRED**: Provide concrete test results and evidence when reporting progress
+- **MANDATORY**: Run diagnostic/validation scripts after making changes
+- **REQUIRED**: Test edge cases and failure scenarios, not just happy path
+- **FORBIDDEN**: Over-optimistic language without verification ("should work", "expected to work")
+- **MANDATORY**: Document actual test execution results and outputs
+
+### 8. Adding New Features
 1. Create/update data models in `models/`
 2. Implement core logic in appropriate module
 3. Add CLI interface in `cli/`
 4. Write comprehensive tests
-5. Update documentation
+5. **VERIFY**: Execute tests and provide results
+6. Update documentation
 
 ## API Integration Rules
 
@@ -371,12 +412,38 @@ black = "^23.12.0"
 2. **ALWAYS** review recent commits and current branch
 3. **ALWAYS** run tests before making changes
 4. **ALWAYS** check existing patterns before implementing
+5. **MANDATORY**: Approach with skepticism - verify current state before proceeding
 
 ### 2. Session Handover
 - **REQUIRED**: Clear documentation of work in progress
 - **REQUIRED**: Updated TODO items in project tracking
 - **REQUIRED**: Clear next steps and blockers
+- **REQUIRED**: Concrete test results and verification evidence
 - **FORBIDDEN**: Leaving sessions with broken tests or partial implementations
+- **FORBIDDEN**: Handover with unverified claims or assumptions
+
+## Communication and Reporting Standards
+
+### 1. Progress Reporting Requirements
+- **MANDATORY**: All progress reports must include actual test execution results
+- **REQUIRED**: Specific error messages, outputs, and evidence when reporting issues
+- **FORBIDDEN**: Vague statements like "it should work" or "expected to work"
+- **REQUIRED**: Screenshots, logs, or command outputs as evidence
+- **MANDATORY**: Clear distinction between "implemented" vs "implemented and verified"
+
+### 2. Problem Reporting Standards
+- **REQUIRED**: Exact error messages and stack traces
+- **REQUIRED**: Steps to reproduce the problem
+- **REQUIRED**: Environment details and configuration state
+- **FORBIDDEN**: Assumptions about root causes without investigation
+- **MANDATORY**: Multiple test cases to isolate the issue
+
+### 3. Solution Verification Standards
+- **CRITICAL**: Never report a solution as complete without test execution
+- **REQUIRED**: Before/after test results showing the improvement
+- **REQUIRED**: Edge case testing to ensure robustness
+- **FORBIDDEN**: Theoretical solutions without practical verification
+- **MANDATORY**: Regression testing to ensure no new issues introduced
 
 ## Quality Gates (MANDATORY)
 

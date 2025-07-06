@@ -34,9 +34,9 @@ openpyxl = "^3.1.2"
 httpx = "^0.25.0"
 # AI/ML
 openai = "^1.6.0"
-anthropic = "^0.8.0"
+anthropic = "^0.57.0"
 # Phonetic matching
-jellyfish = "^0.11.0"
+jellyfish = "^1.0.0"
 # Database
 sqlalchemy = "^2.0.0"
 alembic = "^1.13.0"
