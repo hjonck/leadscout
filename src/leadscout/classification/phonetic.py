@@ -132,11 +132,10 @@ class PhoneticClassifier:
             codes["metaphone"] = ""
 
         try:
-            # Double Metaphone (returns tuple, take first)
-            primary, secondary = jellyfish.double_metaphone(name_clean)
-            codes["dmetaphone"] = primary or ""
+            # Match Rating Codex (replacement for double metaphone which isn't available)
+            codes["dmetaphone"] = jellyfish.match_rating_codex(name_clean)
         except Exception as e:
-            logger.debug(f"Double Metaphone failed for '{name}': {e}")
+            logger.debug(f"Match Rating Codex failed for '{name}': {e}")
             codes["dmetaphone"] = ""
 
         try:

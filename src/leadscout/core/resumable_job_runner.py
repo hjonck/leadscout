@@ -304,6 +304,30 @@ class ResumableJobRunner:
                    total_processed=total_processed,
                    total_failed=total_failed,
                    processing_time_minutes=round((time.time() - self.start_time) / 60, 2))
+        
+        # ENHANCEMENT 1: Immediate learning summary - no final flush needed  
+        # All learning records stored immediately during processing
+        try:
+            if hasattr(self.classifier, 'learning_db'):
+                learning_stats = self.classifier.learning_db.get_learning_statistics()
+                logger.info("Immediate learning system summary",
+                          job_id=job.job_id,
+                          total_llm_classifications=learning_stats.get('total_llm_classifications', 0),
+                          active_learned_patterns=learning_stats.get('active_learned_patterns', 0),
+                          learning_efficiency=learning_stats.get('learning_efficiency', 0),
+                          immediate_learning_active=True)
+                
+                # Calculate immediate learning benefits
+                total_patterns = learning_stats.get('active_learned_patterns', 0)
+                total_llm_calls = learning_stats.get('total_llm_classifications', 0)
+                if total_llm_calls > 0:
+                    pattern_efficiency = total_patterns / total_llm_calls
+                    logger.info("Immediate learning efficiency metrics",
+                              job_id=job.job_id,
+                              patterns_per_llm_call=pattern_efficiency,
+                              real_time_cost_savings=True)
+        except Exception as e:
+            logger.warning("Failed to generate immediate learning summary", error=str(e))
     
     async def _async_stream_batches(self, start_row: int):
         """Async wrapper for streaming processor to enable async processing."""
@@ -384,14 +408,25 @@ class ResumableJobRunner:
                             api_cost=getattr(classification, 'cost_usd', 0.0)
                         )
                         
-                        # NEW: Track learning statistics
+                        # ENHANCEMENT 1: Track immediate learning statistics
                         if result.api_provider in ['openai', 'anthropic']:
                             self.processing_stats['api_calls_made'] += 1
                             batch_learning_stats['llm_calls'] += 1
+                            # Immediate learning: Pattern stored and available for next lead
+                            logger.debug("LLM call completed - pattern immediately available",
+                                       lead_name=director_name,
+                                       immediate_learning=True)
                         elif hasattr(classification, 'learned_pattern') and classification.learned_pattern:
                             batch_learning_stats['learned_pattern_hits'] += 1
-                            # Estimate cost saved by using learned pattern instead of LLM
+                            # Cost saved by using learned pattern instead of LLM
                             batch_learning_stats['cost_saved'] += 0.002  # Average LLM cost
+                            logger.debug("Learned pattern used - cost savings achieved",
+                                       lead_name=director_name,
+                                       cost_saved=True)
+                        elif result.api_provider in ['rule_based', 'phonetic', 'learned']:
+                            # Track when immediate learning patterns are used
+                            batch_learning_stats['learned_pattern_hits'] += 1
+                            batch_learning_stats['cost_saved'] += 0.002
                         
                     else:
                         # Classification failed
@@ -445,6 +480,24 @@ class ResumableJobRunner:
                     failed=len(results) - successful_count,
                     batch_time_seconds=round(batch_elapsed, 2),
                     avg_time_per_lead_ms=round((batch_elapsed / len(results)) * 1000, 2))
+        
+        # ENHANCEMENT 1: Immediate learning - no batch flushing needed
+        # Learning records are stored immediately during classification
+        # This provides real-time pattern availability for cost optimization
+        if self.classifier and hasattr(self.classifier, '_immediate_learning_enabled'):
+            logger.debug("Immediate learning active - patterns available for next leads",
+                        batch_number=batch_number)
+        else:
+            # Legacy fallback for compatibility
+            if self.classifier and hasattr(self.classifier, 'flush_pending_learning_records'):
+                try:
+                    flushed_count = self.classifier.flush_pending_learning_records()
+                    if flushed_count > 0:
+                        logger.info("Legacy learning database flush",
+                                  batch_number=batch_number,
+                                  llm_records_stored=flushed_count)
+                except Exception as e:
+                    logger.warning("Failed to flush learning records", error=str(e))
         
         return results
     

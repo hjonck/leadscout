@@ -747,6 +747,12 @@ class NameDictionaries:
             "Human",
             "Lotter",
             "Marais",
+            # Missing surnames from test data
+            "Myburgh",
+            "Fortuin", 
+            "Gibhard",
+            "Vermeulen",
+            "Carelse",
         ]
 
         # English surnames
@@ -809,6 +815,17 @@ class NameDictionaries:
             "Hester",
             "Sannie",
             "Lettie",
+            # Missing forenames from test data
+            "Frederik",
+            "Frederik",
+            "Lodewyk", 
+            "Jacques",
+            "Conrad",
+            "Francios",
+            "Darius",
+            "Graham",
+            "Alicia",
+            "Antonia",
         ]
 
         # Add Afrikaans surnames

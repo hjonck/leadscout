@@ -103,7 +103,7 @@ def create_test_excel_file(file_path: Path, num_rows: int = 30) -> None:
     df.to_excel(file_path, index=False)
     logger.info("Test Excel file created", file_path=str(file_path), rows=num_rows)
 
-def test_basic_job_runner():
+async def test_basic_job_runner():
     """Test basic ResumableJobRunner functionality."""
     logger.info("🧪 Testing basic ResumableJobRunner functionality")
     
@@ -120,7 +120,7 @@ def test_basic_job_runner():
     
     # Run job
     start_time = time.time()
-    job_id = runner.run()
+    job_id = await runner.run()
     elapsed_time = time.time() - start_time
     
     logger.info("✅ Basic job runner test completed",
@@ -130,7 +130,7 @@ def test_basic_job_runner():
     
     return job_id
 
-def test_resume_functionality():
+async def test_resume_functionality():
     """Test job resume functionality by simulating interruption."""
     logger.info("🧪 Testing resume functionality")
     
@@ -167,7 +167,7 @@ def test_resume_functionality():
     )
     
     start_time = time.time()
-    resumed_job_id = runner.run()
+    resumed_job_id = await runner.run()
     elapsed_time = time.time() - start_time
     
     # Verify it resumed the existing job
@@ -180,7 +180,7 @@ def test_resume_functionality():
     
     return resumed_job_id
 
-def test_error_handling():
+async def test_error_handling():
     """Test error handling and recovery."""
     logger.info("🧪 Testing error handling and recovery")
     
@@ -206,7 +206,7 @@ def test_error_handling():
     )
     
     start_time = time.time()
-    job_id = runner.run()
+    job_id = await runner.run()
     elapsed_time = time.time() - start_time
     
     logger.info("✅ Error handling test completed",
@@ -216,7 +216,7 @@ def test_error_handling():
     
     return job_id
 
-def test_performance_monitoring():
+async def test_performance_monitoring():
     """Test performance monitoring and statistics."""
     logger.info("🧪 Testing performance monitoring")
     
@@ -231,7 +231,7 @@ def test_performance_monitoring():
     )
     
     start_time = time.time()
-    job_id = runner.run()
+    job_id = await runner.run()
     elapsed_time = time.time() - start_time
     
     # Get comprehensive statistics
@@ -247,7 +247,7 @@ def test_performance_monitoring():
     
     return job_id
 
-def main():
+async def main():
     """Run all ResumableJobRunner tests."""
     logger.info("🚀 Starting ResumableJobRunner integration tests")
     
@@ -257,10 +257,10 @@ def main():
         Path("cache").mkdir(exist_ok=True)
         
         # Run tests in sequence
-        test_basic_job_runner()
-        test_resume_functionality()  
-        test_error_handling()
-        test_performance_monitoring()
+        await test_basic_job_runner()
+        await test_resume_functionality()  
+        await test_error_handling()
+        await test_performance_monitoring()
         
         logger.info("🎉 ALL RESUMABLE JOB RUNNER TESTS PASSED!")
         
@@ -286,4 +286,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -438,18 +438,49 @@ class LLMLearningDatabase:
             VALUES (?, ?, ?, ?, 'llm_cached', 8760)
         ''', (name_hash, record.name, record.ethnicity, record.confidence))
     
+    def _normalize_name_for_phonetics(self, name: str) -> str:
+        """Normalize name for phonetic algorithms that require alphabetical characters only."""
+        # Remove common prefixes/suffixes that can interfere
+        normalized = name.strip().lower()
+
+        # Handle South African specific patterns
+        # Remove common prefixes
+        prefixes_to_remove = ["van der ", "van ", "de ", "du ", "le "]
+        for prefix in prefixes_to_remove:
+            if normalized.startswith(prefix):
+                normalized = normalized[len(prefix) :]
+                break
+
+        # Handle apostrophes (common in some SA names)
+        normalized = normalized.replace("'", "")
+
+        # Remove hyphens and spaces for core phonetic matching
+        normalized = normalized.replace("-", "").replace(" ", "")
+
+        # Ensure we have something to work with
+        if not normalized:
+            normalized = name.strip().replace(" ", "")
+
+        return normalized
+
     def _find_phonetic_family_match(self, conn: sqlite3.Connection, name: str) -> Optional[Classification]:
         """Find classification using phonetic family matching."""
+        
+        # Normalize name for phonetic algorithms
+        normalized_name = self._normalize_name_for_phonetics(name)
         
         # Generate phonetic codes for input name using jellyfish directly
         try:
             import jellyfish
-            soundex_code = jellyfish.soundex(name)
-            metaphone_code = jellyfish.metaphone(name)
-            nysiis_code = jellyfish.nysiis(name)
-            match_rating_code = jellyfish.match_rating_codex(name)
+            soundex_code = jellyfish.soundex(normalized_name)
+            metaphone_code = jellyfish.metaphone(normalized_name)
+            nysiis_code = jellyfish.nysiis(normalized_name)
+            match_rating_code = jellyfish.match_rating_codex(normalized_name)
         except ImportError:
             logger.warning("Jellyfish not available for phonetic matching")
+            return None
+        except Exception as e:
+            logger.warning(f"Error generating phonetic codes for '{name}' (normalized: '{normalized_name}'): {e}")
             return None
         
         # Find matching phonetic families
