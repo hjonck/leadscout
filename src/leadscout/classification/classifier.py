@@ -24,8 +24,10 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Union
+from datetime import datetime
 
 from leadscout.core.config import get_settings
+from .learning_database import LLMLearningDatabase, LLMClassificationRecord
 
 from .dictionaries import EthnicityType
 from .exceptions import (
@@ -60,6 +62,8 @@ class ClassificationSession:
     phonetic_hits: int = 0
     llm_hits: int = 0
     cache_hits: int = 0
+    learned_hits: int = 0  # NEW: Learned pattern matches
+    llm_learning_stores: int = 0  # NEW: LLM results stored for learning
     total_time_ms: float = 0.0
     rule_time_ms: float = 0.0
     phonetic_time_ms: float = 0.0
@@ -135,6 +139,13 @@ class NameClassifier:
         # Session tracking
         self.current_session = ClassificationSession()
         
+        # NEW: Initialize learning database
+        self.learning_db = LLMLearningDatabase()
+        self.session_id = f"session_{int(time.time())}"
+        
+        # Queue for deferred learning storage to avoid database conflicts
+        self._pending_learning_records = []
+        
         # Cache integration (placeholder for Developer A's cache system)
         self.cache: Optional[ClassificationCache] = None
         
@@ -142,7 +153,8 @@ class NameClassifier:
             f"NameClassifier initialized - "
             f"Rule threshold: {rule_confidence_threshold}, "
             f"Phonetic threshold: {phonetic_confidence_threshold}, "
-            f"LLM enabled: {enable_llm}"
+            f"LLM enabled: {enable_llm}, "
+            f"Learning database: {self.learning_db.db_path}"
         )
     
     async def classify_name(
@@ -222,6 +234,20 @@ class NameClassifier:
                 logger.warning(f"Phonetic classification failed for '{name}': {e}")
                 self.current_session.errors.append(f"Phonetic error: {str(e)[:100]}")
             
+            # NEW: Layer 2.5 - Check learned patterns BEFORE LLM fallback
+            try:
+                learned_result = self.learning_db.find_learned_classification(name)
+                if learned_result and learned_result.confidence >= 0.6:
+                    self.current_session.learned_hits += 1
+                    logger.info("Learned pattern match found",
+                               extra={"pattern_name": name,
+                                     "pattern_ethnicity": learned_result.ethnicity.value,
+                                     "pattern_confidence": learned_result.confidence})
+                    await self._cache_result(name, learned_result)
+                    return learned_result
+            except Exception as e:
+                logger.warning(f"Learned pattern lookup failed for '{name}': {e}")
+            
             # Layer 3: LLM classification (if enabled and within cost limits)
             if (self._llm_enabled and 
                 self.llm_classifier and 
@@ -239,6 +265,12 @@ class NameClassifier:
                         self.current_session.llm_cost_usd += cost
                     
                     if result and result.confidence >= self.llm_confidence_threshold:
+                        # NEW: Queue LLM success for deferred learning storage
+                        try:
+                            self._queue_llm_classification_for_learning(name, result)
+                        except Exception as e:
+                            logger.warning(f"Failed to queue learning data for '{name}': {e}")
+                        
                         self.current_session.llm_hits += 1
                         await self._cache_result(name, result)
                         return result
@@ -343,8 +375,170 @@ class NameClassifier:
         # TODO: Integrate with Developer A's cache system
         pass
     
+    def _queue_llm_classification_for_learning(self, name: str, classification: Classification):
+        """Queue LLM classification for deferred learning storage."""
+        
+        if classification.confidence < 0.5:  # Lower threshold for learning (was 0.8)
+            logger.debug(f"Skipping learning storage - confidence too low: {classification.confidence}")
+            return
+        
+        try:
+            # Extract phonetic codes using existing phonetic system
+            phonetic_codes = self._extract_phonetic_codes_for_learning(name)
+            
+            # Detect linguistic patterns using SA patterns
+            linguistic_patterns = self._detect_sa_linguistic_patterns(name)
+            
+            # Extract structural features
+            structural_features = self._extract_structural_features(name)
+            
+            # Create learning record
+            record = LLMClassificationRecord(
+                name=name,
+                normalized_name=name.lower().strip(),
+                ethnicity=classification.ethnicity.value,
+                confidence=classification.confidence,
+                llm_provider=classification.llm_details.model_used if classification.llm_details else "unknown",
+                processing_time_ms=classification.processing_time_ms or 0.0,
+                cost_usd=getattr(classification.llm_details, 'cost_usd', 0.0) if classification.llm_details else 0.0,
+                phonetic_codes=phonetic_codes,
+                linguistic_patterns=linguistic_patterns,
+                structural_features=structural_features,
+                classification_timestamp=datetime.now(),
+                session_id=self.session_id
+            )
+            
+            # Queue for deferred storage
+            self._pending_learning_records.append(record)
+            
+            logger.debug("LLM classification queued for learning",
+                       extra={"queued_name": name,
+                             "queued_ethnicity": classification.ethnicity.value,
+                             "patterns_extracted": len(linguistic_patterns)})
+            
+        except Exception as e:
+            logger.error("Failed to queue LLM classification for learning",
+                        extra={"failed_name": name, "error": str(e)})
+    
+    def _extract_phonetic_codes_for_learning(self, name: str) -> Dict[str, str]:
+        """Extract phonetic codes using jellyfish algorithms."""
+        
+        try:
+            import jellyfish
+            
+            # Note: jellyfish doesn't have double_metaphone, only metaphone
+            # Using available phonetic algorithms
+            return {
+                'soundex': jellyfish.soundex(name),
+                'metaphone': jellyfish.metaphone(name),
+                'nysiis': jellyfish.nysiis(name),
+                'match_rating_codex': jellyfish.match_rating_codex(name),
+            }
+        except ImportError:
+            logger.warning("Jellyfish not available for phonetic code extraction")
+            return {
+                'soundex': "",
+                'metaphone': "",
+                'nysiis': "",
+                'match_rating_codex': "",
+            }
+        except Exception as e:
+            logger.warning(f"Error extracting phonetic codes for '{name}': {e}")
+            return {
+                'soundex': "",
+                'metaphone': "",
+                'nysiis': "",
+                'match_rating_codex': "",
+            }
+    
+    def _detect_sa_linguistic_patterns(self, name: str) -> List[str]:
+        """Detect South African linguistic patterns."""
+        
+        patterns = []
+        name_upper = name.upper()
+        
+        # Use existing SA knowledge - patterns from successful classifications
+        if name_upper.startswith('HL'):
+            patterns.append('tsonga_hl_prefix')  # HLUNGWANI
+        if 'VH' in name_upper:
+            patterns.append('venda_vh_pattern')   # TSHIVHASE
+        if name_upper.startswith('NX'):
+            patterns.append('click_consonant')    # NXANGUMUNI
+        if name_upper.startswith('MUL'):
+            patterns.append('venda_mul_prefix')   # MULAUDZI
+        if name_upper.startswith('MMA'):
+            patterns.append('tswana_mma_prefix')  # MMATSHEPO
+        if name_upper.startswith(('MAB', 'MAG', 'MAK', 'MAM')):
+            patterns.append('sotho_ma_pattern')   # MABENA
+        if name_upper.startswith('MK'):
+            patterns.append('zulu_mk_pattern')    # MKHABELA
+        if 'NGU' in name_upper:
+            patterns.append('bantu_ngu_pattern') # NGUBANE
+        
+        return patterns
+    
+    def _extract_structural_features(self, name: str) -> Dict[str, any]:
+        """Extract structural features from name."""
+        import re
+        
+        parts = name.split()
+        
+        features = {
+            'word_count': len(parts),
+            'average_word_length': sum(len(part) for part in parts) / len(parts) if parts else 0,
+            'has_hyphen': '-' in name,
+            'starts_with_consonant_cluster': bool(re.match(r'^[BCDFGHJKLMNPQRSTVWXYZ]{2,}', name.upper())),
+            'vowel_ratio': len(re.findall(r'[AEIOU]', name.upper())) / len(name) if name else 0,
+        }
+        
+        # Prefix/suffix patterns (useful for learning)
+        if len(name) >= 3:
+            features['prefix_2'] = name[:2].lower()
+            features['prefix_3'] = name[:3].lower()
+            features['suffix_2'] = name[-2:].lower()
+            features['suffix_3'] = name[-3:].lower()
+        
+        return features
+    
+    def flush_pending_learning_records(self) -> int:
+        """Flush queued learning records to database and return count stored."""
+        
+        if not self._pending_learning_records:
+            return 0
+        
+        stored_count = 0
+        
+        try:
+            # Use the existing instance to avoid multiple connections
+            for record in self._pending_learning_records:
+                try:
+                    success = self.learning_db.store_llm_classification(record)
+                    if success:
+                        stored_count += 1
+                        self.current_session.llm_learning_stores += 1
+                        logger.info("Deferred LLM classification stored for learning",
+                                   extra={"stored_name": record.name,
+                                         "stored_ethnicity": record.ethnicity,
+                                         "patterns_extracted": len(record.linguistic_patterns)})
+                except Exception as e:
+                    logger.warning(f"Failed to store deferred learning record for '{record.name}': {e}")
+            
+            # Clear the queue
+            self._pending_learning_records.clear()
+            
+            logger.info(f"Flushed {stored_count} learning records to database")
+            
+        except Exception as e:
+            logger.error(f"Failed to flush learning records: {e}")
+        
+        return stored_count
+    
     def get_session_stats(self) -> ClassificationStats:
         """Get statistics for the current classification session."""
+        
+        # Flush any pending learning records first
+        self.flush_pending_learning_records()
+        
         session = self.current_session
         
         # Calculate rates and averages
@@ -368,6 +562,12 @@ class NameClassifier:
             if session.names_processed > 0 else 0.0
         )
         
+        # NEW: Learning metrics
+        learned_hit_rate = (
+            session.learned_hits / session.names_processed 
+            if session.names_processed > 0 else 0.0
+        )
+        
         avg_time_ms = (
             session.total_time_ms / session.names_processed 
             if session.names_processed > 0 else 0.0
@@ -387,10 +587,14 @@ class NameClassifier:
             total_time_ms=session.total_time_ms,
             llm_cost_usd=session.llm_cost_usd,
             error_count=len(session.errors),
+            learned_hits=session.learned_hits,
+            learned_hit_rate=learned_hit_rate,
+            learning_stores=session.llm_learning_stores,
             performance_targets_met={
                 "rule_time_under_10ms": session.rule_time_ms / max(session.rule_hits, 1) < 10,
                 "phonetic_time_under_50ms": session.phonetic_time_ms / max(session.phonetic_hits, 1) < 50,
                 "cache_hit_rate_over_80%": cache_hit_rate > 0.8,
+                "learned_pattern_usage_over_10%": learned_hit_rate > 0.1,
                 "llm_usage_under_5%": llm_usage_rate < 0.05,
             }
         )
@@ -484,7 +688,7 @@ def create_classifier(
     """Create a name classifier with predefined configuration modes.
     
     Args:
-        mode: Configuration mode ('fast', 'balanced', 'accurate')
+        mode: Configuration mode ('fast', 'balanced', 'accurate', 'cost_optimized')
         enable_llm: Whether to enable LLM classification
         max_cost: Maximum LLM cost per session
         
@@ -506,6 +710,15 @@ def create_classifier(
             rule_confidence_threshold=0.9,
             phonetic_confidence_threshold=0.8,
             llm_confidence_threshold=0.7,
+            enable_llm=enable_llm,
+            max_llm_cost_per_session=max_cost,
+        )
+    elif mode == "cost_optimized":
+        # Research-optimized configuration to reduce LLM usage by 90%
+        return NameClassifier(
+            rule_confidence_threshold=0.75,  # Slightly lower to catch more rules
+            phonetic_confidence_threshold=0.5,  # Research recommendation
+            llm_confidence_threshold=0.4,  # Lower to accept more phonetic results
             enable_llm=enable_llm,
             max_llm_cost_per_session=max_cost,
         )

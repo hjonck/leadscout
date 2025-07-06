@@ -11,6 +11,7 @@ import click
 
 from ..core.config import get_settings
 from .commands import cache, config, enrich
+from .jobs import jobs
 
 
 @click.group()
@@ -61,6 +62,7 @@ def cli(
 cli.add_command(enrich.enrich)
 cli.add_command(cache.cache)
 cli.add_command(config.config)
+cli.add_command(jobs)
 
 
 if __name__ == "__main__":

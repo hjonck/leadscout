@@ -63,13 +63,13 @@ class PhoneticClassifier:
             "jaro_winkler": 0.20,  # Good for spelling variations
         }
 
-        # Minimum similarity thresholds for each algorithm
+        # Minimum similarity thresholds for each algorithm (research-optimized)
         self.similarity_thresholds = {
             "soundex": 1.0,  # Exact match for soundex (binary)
             "metaphone": 1.0,  # Exact match for metaphone
             "dmetaphone": 1.0,  # Exact match for double metaphone
             "nysiis": 1.0,  # Exact match for nysiis
-            "jaro_winkler": 0.85,  # High threshold for jaro-winkler
+            "jaro_winkler": 0.80,  # Lowered from 0.85 per research recommendations
         }
 
         # Load dictionaries for phonetic preprocessing
@@ -133,10 +133,8 @@ class PhoneticClassifier:
 
         try:
             # Double Metaphone (returns tuple, take first)
-            dmetaphone_result = jellyfish.dmetaphone(name_clean)  # type: ignore
-            codes["dmetaphone"] = (
-                dmetaphone_result[0] if dmetaphone_result[0] else ""
-            )
+            primary, secondary = jellyfish.double_metaphone(name_clean)
+            codes["dmetaphone"] = primary or ""
         except Exception as e:
             logger.debug(f"Double Metaphone failed for '{name}': {e}")
             codes["dmetaphone"] = ""

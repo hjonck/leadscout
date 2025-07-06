@@ -39,6 +39,7 @@ class EthnicityType(Enum):
     CAPE_MALAY = "cape_malay"
     COLOURED = "coloured"
     WHITE = "white"
+    CHINESE = "chinese"  # NEW - fixes "SHUHUANG YAN" type failures
     UNKNOWN = "unknown"
 
 
@@ -92,6 +93,7 @@ class NameDictionaries:
         ] = self._load_cape_malay_names()
         self.dictionaries[EthnicityType.COLOURED] = self._load_coloured_names()
         self.dictionaries[EthnicityType.WHITE] = self._load_white_names()
+        self.dictionaries[EthnicityType.CHINESE] = self._load_chinese_names()
 
         total_names = sum(len(d) for d in self.dictionaries.values())
         logger.info(
@@ -162,6 +164,7 @@ class NameDictionaries:
             "Tsabedze",
             "Fakude",
             "Nxumalo",
+            "Nkosi",  # Common African surname
         ]
 
         nguni_forenames = [
@@ -263,7 +266,7 @@ class NameDictionaries:
             "Goitseone",
         ]
 
-        # Venda names
+        # Venda names (expanded with critical missing surnames)
         venda_names = [
             "Ramaphosa",
             "Mphephu",
@@ -283,6 +286,51 @@ class NameDictionaries:
             "Fulufhelo",
             "Khangale",
             "Mavhandu",
+            # CRITICAL additions from production failures
+            "Mulaudzi",  # Common Venda surname from failures
+            "Makhado",
+        ]
+
+        # Tsonga surnames (from failed "HLUNGWANI" cases)
+        tsonga_surnames = [
+            "Hlungwani",  # High frequency failure
+            "Baloyi",
+            "Ngobeni", 
+            "Novela",
+            "Mathonsi",
+            "Chauke",
+            "Bila",
+            "Cambale",
+            "Nkuna",
+            "Shirilele",
+            "Mkhabela",
+            "Makhubele",
+        ]
+
+        # Modern African first names (HIGH FREQUENCY in SA business)
+        modern_african_first_names = [
+            # Virtue names (HIGH FREQUENCY in SA business)
+            "Lucky", "Blessing", "Gift", "Miracle", "Hope", "Faith", "Grace",
+            "Precious", "Prince", "Princess", "Success", "Progress", "Victory",
+            "Champion", "Winner", "Justice", "Wisdom", "Peace", "Joy",
+            
+            # Day names (common in contemporary SA)
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+            
+            # Achievement names
+            "Doctor", "Engineer", "Professor", "Teacher", "Nurse",
+            
+            # Modern African compound names
+            "Godknows", "Givenchance", "Thanksgiving", "Goodness", "Patience"
+        ]
+
+        # Additional critical missing surnames (from production logs)
+        critical_missing_surnames = [
+            # Sotho/Tswana with MMA prefix
+            "Mmatshepo", "Mmabatho", "Mmapula", "Mmatli", "Mmakoma",
+            
+            # Production failures (from logs)
+            "Mabena", "Kandengwa", "Mtimkulu", "Sebetha", "Ramontsa", "Magabane"
         ]
 
         # Add all names with metadata
@@ -334,6 +382,39 @@ class NameDictionaries:
                 frequency=30,
                 linguistic_origin="Venda",
                 name_type="both",
+            )
+
+        # Add Tsonga surnames (high confidence for click patterns)
+        for surname in tsonga_surnames:
+            names[surname.lower()] = NameEntry(
+                name=surname,
+                ethnicity=EthnicityType.AFRICAN,
+                confidence=0.94,  # High confidence for Tsonga patterns
+                frequency=40,
+                linguistic_origin="Tsonga",
+                name_type="surname",
+            )
+
+        # Add modern African first names (critical for business context)
+        for forename in modern_african_first_names:
+            names[forename.lower()] = NameEntry(
+                name=forename,
+                ethnicity=EthnicityType.AFRICAN,
+                confidence=0.88,  # High confidence for modern African names
+                frequency=60,
+                linguistic_origin="Modern African",
+                name_type="forename",
+            )
+
+        # Add critical missing surnames
+        for surname in critical_missing_surnames:
+            names[surname.lower()] = NameEntry(
+                name=surname,
+                ethnicity=EthnicityType.AFRICAN,
+                confidence=0.90,
+                frequency=50,
+                linguistic_origin="African (production critical)",
+                name_type="surname",
             )
 
         return names
@@ -692,6 +773,16 @@ class NameDictionaries:
             "Robinson",
         ]
 
+        # English forenames (common in SA)
+        english_forenames = [
+            "John", "James", "William", "David", "Michael", "Robert", "Richard",
+            "Ben", "Benjamin", "Christopher", "Daniel", "Matthew", "Andrew",
+            "Mark", "Paul", "Steven", "Kenneth", "Edward", "Brian", "Anthony",
+            "Kevin", "Jason", "Mary", "Jennifer", "Linda", "Elizabeth", "Barbara",
+            "Susan", "Jessica", "Sarah", "Karen", "Nancy", "Lisa", "Betty",
+            "Helen", "Sandra", "Donna", "Carol", "Ruth", "Sharon", "Michelle",
+        ]
+
         # Afrikaans forenames
         afrikaans_forenames = [
             "Johannes",
@@ -742,6 +833,17 @@ class NameDictionaries:
                 name_type="surname",
             )
 
+        # Add English forenames 
+        for forename in english_forenames:
+            names[forename.lower()] = NameEntry(
+                name=forename,
+                ethnicity=EthnicityType.WHITE,
+                confidence=0.80,
+                frequency=55,
+                linguistic_origin="English",
+                name_type="forename",
+            )
+
         # Add Afrikaans forenames
         for forename in afrikaans_forenames:
             names[forename.lower()] = NameEntry(
@@ -750,6 +852,51 @@ class NameDictionaries:
                 confidence=0.85,
                 frequency=50,
                 linguistic_origin="Afrikaans",
+                name_type="forename",
+            )
+
+        return names
+
+    def _load_chinese_names(self) -> Dict[str, NameEntry]:
+        """Load Chinese name classification for South African Chinese community."""
+        names = {}
+
+        # Common Chinese surnames in South Africa
+        chinese_surnames = [
+            # Common in South Africa
+            "Wong", "Chen", "Li", "Wang", "Zhang", "Liu", "Yang", "Huang",
+            "Zhao", "Wu", "Zhou", "Xu", "Sun", "Ma", "Zhu", "Hu", "Guo",
+            "Lin", "He", "Gao", "Liang", "Zheng", "Luo", "Song", "Xie",
+            "Tang", "Han", "Cao", "Deng", "Feng", "Zeng", "Peng", "Yan"
+        ]
+
+        # Common Chinese given names
+        chinese_given_names = [
+            # Common patterns
+            "Wei", "Min", "Jun", "Hui", "Ping", "Hong", "Lei", "Fang",
+            "Jing", "Li", "Xin", "Ming", "Bin", "Qiang", "Gang", "Peng",
+            "Shuhuang", "Xiaoling", "Jiahao", "Yifei", "Zihan", "Ruoxi"
+        ]
+
+        # Add Chinese surnames
+        for surname in chinese_surnames:
+            names[surname.lower()] = NameEntry(
+                name=surname,
+                ethnicity=EthnicityType.CHINESE,
+                confidence=0.95,  # High confidence for Chinese surnames
+                frequency=20,
+                linguistic_origin="Chinese",
+                name_type="surname",
+            )
+
+        # Add Chinese given names
+        for given_name in chinese_given_names:
+            names[given_name.lower()] = NameEntry(
+                name=given_name,
+                ethnicity=EthnicityType.CHINESE,
+                confidence=0.85,  # Good confidence for given names
+                frequency=15,
+                linguistic_origin="Chinese",
                 name_type="forename",
             )
 

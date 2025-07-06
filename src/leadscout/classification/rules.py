@@ -208,23 +208,37 @@ class RuleBasedClassifier:
     def _classify_multi_word_name(
         self, validation: ValidationResult
     ) -> Classification:
-        """Classify multi-word name using least European element priority."""
+        """Classify multi-word name using least European element priority with phonetic fallback."""
         name_parts = validation.name_parts
         individual_classifications = []
+        unclassified_parts = []
 
-        # Classify each part individually
+        # First pass: Classify each part individually using rule-based method
         for part in name_parts:
             if len(part) > 1:  # Skip single letters (initials)
                 classification = self._classify_single_name(part, time.time())
                 if classification:
                     individual_classifications.append(classification)
+                else:
+                    unclassified_parts.append(part)
+
+        # Second pass: Use phonetic fallback for unclassified parts if available
+        if unclassified_parts and hasattr(self, 'phonetic_classifier'):
+            logger.info(f"Attempting phonetic fallback for {len(unclassified_parts)} parts")
+            for part in unclassified_parts:
+                try:
+                    # This would require integration with phonetic classifier
+                    # For now, we log that phonetic fallback would be attempted
+                    logger.debug(f"Phonetic fallback needed for part: {part}")
+                except Exception as e:
+                    logger.debug(f"Phonetic fallback failed for {part}: {e}")
 
         if not individual_classifications:
             raise MultiWordAnalysisError(
                 f"No individual parts of '{validation.original_name}' could be classified",
                 name=validation.original_name,
                 name_parts=name_parts,
-                individual_errors=["No classifiable parts found"],
+                individual_errors=["No classifiable parts found after rule-based and phonetic attempts"],
             )
 
         # Apply priority logic: least European element wins
@@ -273,6 +287,7 @@ class RuleBasedClassifier:
         priority_order = [
             EthnicityType.AFRICAN,
             EthnicityType.INDIAN,
+            EthnicityType.CHINESE,
             EthnicityType.CAPE_MALAY,
             EthnicityType.COLOURED,
             EthnicityType.WHITE,

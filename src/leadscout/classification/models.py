@@ -249,6 +249,27 @@ class ClassificationStats(BaseModel):
     """Statistics for classification performance."""
 
     total_classifications: int = 0
+    rule_classifications: int = 0
+    phonetic_classifications: int = 0
+    llm_classifications: int = 0
+    cache_hits: int = 0
+    learned_hits: int = 0  # NEW: Learned pattern matches
+    
+    cache_hit_rate: float = 0.0
+    rule_hit_rate: float = 0.0
+    phonetic_hit_rate: float = 0.0
+    llm_usage_rate: float = 0.0
+    learned_hit_rate: float = 0.0  # NEW: Learned pattern usage rate
+    
+    average_time_ms: float = 0.0
+    total_time_ms: float = 0.0
+    llm_cost_usd: float = 0.0
+    error_count: int = 0
+    learning_stores: int = 0  # NEW: LLM classifications stored for learning
+    
+    performance_targets_met: Dict[str, bool] = Field(default_factory=dict)
+    
+    # Legacy fields for backward compatibility
     method_breakdown: Dict[ClassificationMethod, int] = Field(
         default_factory=dict
     )
@@ -258,8 +279,6 @@ class ClassificationStats(BaseModel):
     ethnicity_breakdown: Dict[EthnicityType, int] = Field(default_factory=dict)
     average_confidence: float = 0.0
     average_processing_time_ms: float = 0.0
-    cache_hit_rate: float = 0.0
-    llm_usage_rate: float = 0.0
 
     def update_with_classification(
         self, classification: Classification, from_cache: bool = False
