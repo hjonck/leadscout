@@ -63,6 +63,215 @@
 - **FORBIDDEN**: Print statements or unstructured logging in production code
 - **REQUIRED**: Log rotation and proper file organization
 
+### 7. Resumable Job Processing Framework (CRITICAL PRODUCTION REQUIREMENT)
+
+#### **7.1 Fundamental Resumable Job Principle**
+- **MANDATORY**: ALL long-running operations MUST be resumable from any interruption point
+- **CRITICAL RULE**: Jobs processing 500+ leads MUST support conservative resume with zero data loss
+- **REQUIRED**: Stream processing with SQLite intermediate storage (never load entire file into memory)
+- **FORBIDDEN**: In-memory processing of large datasets without persistent checkpoints
+
+#### **7.2 Job Architecture Requirements**
+- **MANDATORY**: Batch processing with configurable batch size (default: 100 leads per batch)
+- **REQUIRED**: Conservative resume strategy - always resume from last committed batch
+- **MANDATORY**: SQLite-based job metadata and locking system
+- **REQUIRED**: Automatic job resumption by default when same input file is processed
+- **FORBIDDEN**: Concurrent processing of the same input file (enforced via DB locks)
+
+#### **7.3 SQLite Schema Design**
+```sql
+-- MANDATORY schema for all resumable jobs
+CREATE TABLE job_executions (
+    job_id TEXT PRIMARY KEY,
+    input_file_path TEXT NOT NULL,
+    input_file_modified_time INTEGER NOT NULL,  -- File mtime for change detection
+    output_file_path TEXT,
+    total_rows INTEGER,
+    batch_size INTEGER DEFAULT 100,
+    last_committed_batch INTEGER DEFAULT 0,
+    processed_leads_count INTEGER DEFAULT 0,
+    failed_leads_count INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'running',  -- 'running', 'completed', 'failed', 'paused'
+    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completion_time TIMESTAMP,
+    api_costs_total REAL DEFAULT 0.0,
+    processing_time_total_ms REAL DEFAULT 0.0,
+    error_summary TEXT,
+    created_by TEXT,  -- Process/session identifier
+    UNIQUE(input_file_path, status) WHERE status = 'running'  -- Prevent concurrent jobs
+);
+
+CREATE TABLE lead_processing_results (
+    job_id TEXT,
+    row_index INTEGER,
+    batch_number INTEGER,
+    entity_name TEXT,
+    director_name TEXT,
+    classification_result JSON,
+    processing_status TEXT,  -- 'success', 'failed', 'retry_exhausted'
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    error_type TEXT,  -- 'rate_limit', 'api_error', 'validation_error', 'timeout'
+    processing_time_ms REAL,
+    api_provider TEXT,  -- 'openai', 'anthropic', 'rule_based', 'phonetic'
+    api_cost REAL DEFAULT 0.0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (job_id, row_index),
+    FOREIGN KEY (job_id) REFERENCES job_executions(job_id)
+);
+
+CREATE TABLE job_locks (
+    input_file_path TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    locked_by TEXT,  -- Process identifier
+    FOREIGN KEY (job_id) REFERENCES job_executions(job_id)
+);
+```
+
+#### **7.4 Rate Limit Management**
+- **MANDATORY**: Research and implement actual API rate limits for each provider
+- **REQUIRED**: OpenAI rate limit compliance (3 RPM for free tier, higher for paid)
+- **REQUIRED**: Anthropic rate limit compliance (5 RPM standard, check current limits)
+- **MANDATORY**: Exponential backoff with provider-specific parameters
+- **REQUIRED**: Automatic provider switching when rate limits exceeded repeatedly
+- **FORBIDDEN**: Guessing rate limits - must use documented API limits
+
+#### **7.5 Error Handling and Retry Strategy**
+- **MANDATORY**: Classify errors into categories: 'rate_limit', 'api_error', 'validation_error', 'timeout'
+- **REQUIRED**: Microbatch processing for failed leads (batch size = 1) with 3 retry attempts
+- **REQUIRED**: Provider switching for persistent failures after 3 attempts on same provider
+- **MANDATORY**: Conservative batch commit - only commit successful results within batch
+- **REQUIRED**: Track retry count and error reasons for all failures
+- **FORBIDDEN**: Infinite retry loops - enforce maximum retry limits
+
+#### **7.6 Progress Tracking and Monitoring**
+- **MANDATORY**: Log progress with every completed batch using structured logging
+- **REQUIRED**: Real-time progress calculation: (processed_leads / total_rows) * 100
+- **REQUIRED**: Performance metrics per batch: processing_time_ms, api_costs, success_rate
+- **MANDATORY**: Minimal performance metrics storage for future optimization
+- **REQUIRED**: Progress log format: "Batch {batch_num}/{total_batches} completed - {processed}/{total} leads - {success_rate}% success"
+
+#### **7.7 Job Resume Logic**
+- **MANDATORY**: Auto-detect existing jobs for same input file and resume by default
+- **REQUIRED**: Conservative resume: start from (last_committed_batch + 1) * batch_size
+- **REQUIRED**: Verify input file hasn't changed using stored modified_time
+- **MANDATORY**: Clear messaging when resuming: "Resuming job {job_id} from batch {batch_num}"
+- **FORBIDDEN**: Optimistic resume that might cause data inconsistency
+
+#### **7.8 Streaming Data Processing**
+- **MANDATORY**: Stream Excel data in batches, never load entire file into memory
+- **REQUIRED**: Process leads in chunks of configured batch size
+- **REQUIRED**: Immediate SQLite commit after each successful batch
+- **FORBIDDEN**: In-memory accumulation of results beyond single batch size
+- **REQUIRED**: Memory-efficient iteration through large Excel files
+
+#### **7.9 Output Generation**
+- **MANDATORY**: On-demand output generation from SQLite data
+- **REQUIRED**: Support multiple output formats: Excel, CSV, JSON
+- **REQUIRED**: Include failed leads in separate output section/file
+- **MANDATORY**: Output generation independent of job processing status
+- **REQUIRED**: Command structure: `generate_output.py --job-id {job_id} --format excel`
+
+#### **7.10 Job Validation and Integrity**
+- **MANDATORY**: Post-completion validation of all jobs
+- **REQUIRED**: Validate: processed_count + failed_count = total_input_rows
+- **REQUIRED**: Verify SQLite data integrity and consistency
+- **REQUIRED**: Confirm output files match SQLite stored results
+- **MANDATORY**: Report validation results and any discrepancies
+- **FORBIDDEN**: Consider job complete without validation pass
+
+#### **7.11 Job Lifecycle Management**
+- **REQUIRED**: Job status transitions: 'running' → 'completed'/'failed'
+- **MANDATORY**: Automatic lock cleanup on job completion
+- **REQUIRED**: Manual job cleanup commands for maintenance
+- **REQUIRED**: Job archival strategy for completed jobs
+- **FORBIDDEN**: Automatic deletion of job data without explicit user action
+
+#### **7.12 Configuration Management**
+- **REQUIRED**: Batch size configuration via parameter file initially
+- **FUTURE**: Database-stored optimization parameters for threading
+- **REQUIRED**: Provider-specific rate limit configuration
+- **REQUIRED**: Retry and backoff parameter configuration
+- **MANDATORY**: All job parameters must be stored with job metadata
+
+#### **7.13 Concurrent Job Prevention**
+- **MANDATORY**: SQLite-based job locking with metadata
+- **REQUIRED**: Check for existing locks before starting new job
+- **REQUIRED**: Automatic lock cleanup on graceful job completion
+- **REQUIRED**: Stale lock detection and recovery procedures
+- **FORBIDDEN**: Multiple jobs processing same input file simultaneously
+
+#### **7.14 Performance Optimization Foundation**
+- **REQUIRED**: Store minimal performance metrics for analysis
+- **REQUIRED**: Track: avg_processing_time_per_lead, api_calls_per_provider, cost_per_lead
+- **REQUIRED**: Batch performance analytics for future threading optimization
+- **FUTURE**: Database-driven batch size optimization based on historical performance
+- **REQUIRED**: Performance baseline establishment for regression detection
+
+#### **7.15 LLM-Driven Auto-Improvement System (CRITICAL COST OPTIMIZATION)**
+- **MANDATORY**: Cache all successful LLM classifications for auto-improvement
+- **REQUIRED**: Extract patterns from LLM successes to enhance rule-based classification
+- **REQUIRED**: Build phonetic mappings from LLM-classified names automatically
+- **MANDATORY**: Create feedback loop: LLM success → Rule enhancement → Reduced LLM dependency
+- **REQUIRED**: Automatic rule generation from LLM classification patterns
+- **FORBIDDEN**: Discarding LLM results without learning from them
+
+#### **7.16 Auto-Enhancement Schema Extensions**
+```sql
+-- MANDATORY additions to lead_processing_results table for auto-learning
+ALTER TABLE lead_processing_results ADD COLUMN phonetic_codes JSON;  -- Store phonetic variants
+ALTER TABLE lead_processing_results ADD COLUMN learned_patterns JSON;  -- Extracted patterns
+ALTER TABLE lead_processing_results ADD COLUMN confidence_factors JSON;  -- Why LLM was confident
+
+-- Auto-generated rule storage
+CREATE TABLE IF NOT EXISTS auto_generated_rules (
+    rule_id TEXT PRIMARY KEY,
+    source_name TEXT NOT NULL,  -- Name that generated this rule
+    source_job_id TEXT,  -- Job where pattern was learned
+    rule_type TEXT,  -- 'prefix', 'suffix', 'phonetic', 'substring', 'pattern'
+    rule_pattern TEXT,  -- The actual pattern/rule
+    target_ethnicity TEXT,  -- What this rule classifies to
+    confidence_score REAL,  -- Confidence in this auto-generated rule
+    usage_count INTEGER DEFAULT 0,  -- How many times rule has been applied
+    success_rate REAL DEFAULT 0.0,  -- Success rate when applied
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
+    FOREIGN KEY (source_job_id) REFERENCES job_executions(job_id)
+);
+
+-- Pattern learning analytics
+CREATE TABLE IF NOT EXISTS pattern_learning_analytics (
+    pattern_id TEXT PRIMARY KEY,
+    pattern_type TEXT,  -- 'name_prefix', 'name_suffix', 'phonetic_group', 'linguistic_pattern'
+    pattern_value TEXT,
+    ethnicity TEXT,
+    confidence_score REAL,
+    sample_names JSON,  -- Names that support this pattern
+    validation_names JSON,  -- Names used to validate pattern
+    created_from_job_id TEXT,
+    accuracy_rate REAL DEFAULT 0.0,
+    total_applications INTEGER DEFAULT 0,
+    FOREIGN KEY (created_from_job_id) REFERENCES job_executions(job_id)
+);
+```
+
+#### **7.17 Auto-Learning Implementation Requirements**
+- **MANDATORY**: After each LLM classification, extract learnable patterns
+- **REQUIRED**: Generate phonetic codes for all LLM-classified names
+- **REQUIRED**: Identify name components (prefixes, suffixes, roots) from LLM successes
+- **MANDATORY**: Auto-create rules with confidence thresholds for future use
+- **REQUIRED**: Validate auto-generated rules against existing successful classifications
+- **FORBIDDEN**: Using auto-generated rules without confidence validation
+
+#### **7.18 Cost Optimization Through Learning**
+- **TARGET**: Achieve <5% LLM usage through intelligent rule learning
+- **REQUIRED**: Track LLM cost reduction over time as rules improve
+- **MANDATORY**: Measure rule effectiveness: (auto_classifications / total_classifications)
+- **REQUIRED**: Regular purging of low-performing auto-generated rules
+- **TARGET**: 80%+ cost reduction through accumulated learning
+
 ## File and Folder Conventions
 
 ### Project Structure (IMMUTABLE)
