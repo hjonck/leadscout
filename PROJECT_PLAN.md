@@ -482,46 +482,122 @@
 
 ---
 
-## 🎯 **CURRENT PHASE: ENHANCED SYSTEM DEPLOYMENT**
+## 🎯 **CURRENT PHASE: CRITICAL ISSUE RESOLUTION**
 
-### **Phase 5: Enhanced System Deployment** 🚀 *CURRENT PHASE*
-**Status**: Core system + Enhancement 1 complete, ready for production deployment  
-**Priority**: CRITICAL - Deploy enhanced system with immediate learning operational
+### **Phase 5: Critical Rule Classification System Fixes** 🚨 *URGENT CURRENT PHASE*
+**Status**: **CRITICAL PRODUCTION ISSUE IDENTIFIED** - Rule system failing, blocking cost optimization  
+**Priority**: 🚨 **IMMEDIATE** - Fix blocking cost optimization targets
+**Issue**: Rule-based classification only hitting 30% of names, forcing expensive LLM fallback
 
-#### User Acceptance Testing (Complexity: Moderate) 
-- [ ] **End-to-End User Workflow Testing** - Walk through complete lead enrichment process with real user data
-- [ ] **CLI Usability Validation** - Verify commands are intuitive and error messages helpful
-- [ ] **Performance Validation** - Confirm processing speed meets business workflow requirements
-- [ ] **Output Quality Assessment** - Validate enriched data meets business expectations
-- [ ] **Error Handling Review** - Test edge cases and error recovery scenarios
-- [ ] **Learning System Demonstration** - Verify cost optimization works as expected
-- [ ] **Production Deployment Validation** - Final deployment readiness confirmation
+#### **URGENT: Rule Classification System Fixes** (Complexity: High)
+**CRITICAL BLOCKING ISSUE**: Rule system failing on common SA names, preventing cost optimization
 
-#### Documentation & Training (Complexity: Simple)
-- [ ] **User Manual Creation** - Complete CLI usage guide with examples
-- [ ] **Troubleshooting Guide** - Common issues and resolution procedures
-- [ ] **Business Value Documentation** - ROI analysis and cost savings documentation
-- [ ] **Deployment Guide** - Step-by-step production deployment instructions
+**Immediate Actions Required**:
+- [ ] **🚨 Phase 1: Dictionary Updates** - Add 100+ missing SA names (2-4 hours, HIGH IMPACT)
+- [ ] **🔧 Phase 2: Validation Fixes** - Fix "too many parts" bug for Afrikaans names (1-2 hours)  
+- [ ] **⚙️ Phase 3: Logic Enhancement** - Fix multi-word classification logic (4-6 hours)
+- [ ] **🎯 Phase 4: Pattern Recognition** - Add compound surname support (6-8 hours, OPTIONAL)
 
-#### Release Preparation (Complexity: Simple)
-- [ ] **Version Tagging** - Semantic versioning for production release
-- [ ] **Release Notes** - Comprehensive feature and performance documentation
-- [ ] **Monitoring Setup** - Production monitoring and alerting configuration
-- [ ] **Support Procedures** - User support and maintenance procedures
+**Production Evidence of Issue**:
+- "ANDREAS PETRUS VAN DER MERWE" → ❌ REJECTED ("too many parts")
+- "HEINRICH ADRIAN TIMMIE" → ❌ DICTIONARY MISS → LLM FALLBACK  
+- "NOMVUYISEKO EUNICE MSINDO" → ❌ DICTIONARY MISS → LLM FALLBACK
+- "ALLISTER PIETERSEN" → ❌ DICTIONARY MISS → LLM FALLBACK
 
-**Success Criteria for Release**:
-- [ ] User can successfully process their own lead data
-- [ ] System performance meets business workflow requirements  
-- [ ] Error handling provides clear, actionable guidance
-- [ ] Learning system demonstrates cost optimization benefits
-- [ ] Documentation enables independent user operation
-- [ ] Production deployment validated and approved
+**Business Impact**: **70-80% immediate cost reduction** after fixes ($0.70 → $0.20 per 1000 leads)
 
-**Current Task**: **USER ACCEPTANCE TESTING** - Work with user to validate system meets business requirements for release
+**Success Criteria**:
+- [ ] All 16 production failure cases now classify via rules
+- [ ] Rule-based hit rate increases from 30% → 80%+  
+- [ ] LLM usage drops to target <20% for common names
+- [ ] Cost reduction of 70%+ per batch achieved
+
+#### **DEFERRED: User Acceptance Testing** (Complexity: Moderate)
+**Status**: **DEFERRED** until rule classification issues resolved  
+**Reason**: System not achieving cost optimization targets due to rule failures
+
+- [ ] **End-to-End User Workflow Testing** - AFTER rule fixes implemented
+- [ ] **Performance Validation** - AFTER cost optimization achieved  
+- [ ] **Learning System Demonstration** - AFTER rule system working properly
+
+**Current Task**: **🚨 CRITICAL RULE SYSTEM FIXES** - Implement Enhancement 2 to achieve cost optimization targets
 
 ---
 
 ## 🚀 **PRODUCT BACKLOG - HIGH PRIORITY ENHANCEMENTS**
+
+### **Enhancement 2: Rule-Based Classification System Fixes** 🚨 **CRITICAL - BLOCKING COST OPTIMIZATION**
+**Status**: 📋 **SPECIFICATION COMPLETE** - Ready for immediate implementation  
+**Priority**: 🚨 **CRITICAL** - Production issue blocking cost targets  
+**Complexity**: High (Multiple System Components) - **REQUIRES IMMEDIATE ATTENTION**
+**Business Impact**: **70-80% immediate cost reduction potential**  
+**Implementation Time**: 12-20 hours across 4 phases
+
+#### **Critical Production Issue**
+The rule-based classification system has **fundamental flaws** preventing cost optimization:
+
+**Current State**: Rule-based hit rate ~30% for common SA names  
+**Target State**: Rule-based hit rate >80% for common SA names  
+**Cost Impact**: $0.70 → $0.20 per 1000 leads (71% savings)
+
+#### **Root Cause Analysis**
+1. **"Too Many Parts" Bug**: Afrikaans names (5-6 parts) rejected before dictionary lookup
+2. **Massive Dictionary Gaps**: Missing fundamental SA names (Andreas, Petrus, Heinrich, Nomvuyiseko, etc.)
+3. **Poor Compound Handling**: "van der Merwe" patterns not recognized
+4. **Strict Multi-Word Logic**: ANY unclassified part fails entire name
+
+#### **Production Evidence**
+These common SA names are **failing rule classification** and forcing expensive LLM calls:
+- ❌ "ANDREAS PETRUS VAN DER MERWE" → "too many parts" 
+- ❌ "HEINRICH ADRIAN TIMMIE" → dictionary miss
+- ❌ "NOMVUYISEKO EUNICE MSINDO" → dictionary miss  
+- ❌ "ALLISTER PIETERSEN" → dictionary miss
+
+#### **Technical Solution**
+**Phase 1** (High Impact, Low Risk - 2-4 hours):
+- Add 50+ missing Afrikaans first names to dictionary
+- Add 30+ missing English first names to dictionary  
+- Add 50+ missing surname components to dictionary
+- Add 20+ missing African names to dictionary
+
+**Phase 2** (Medium Impact, Low Risk - 1-2 hours):
+- Increase name part limit from 4 → 6 parts
+- Add SA compound name validation
+
+**Phase 3** (High Impact, Medium Risk - 4-6 hours):
+- Fix multi-word classification logic
+- Separate particles from significant parts
+- More tolerant failure conditions
+
+**Phase 4** (Medium Impact, High Risk - 6-8 hours):
+- Compound surname pattern recognition
+- Afrikaans particle handling
+- "van der Merwe" type pattern support
+
+#### **Expected Business Impact**
+**For 1000 lead batch**:
+- **Before**: 300 rule hits + 700 LLM calls = $0.70
+- **After**: 800 rule hits + 200 LLM calls = $0.20
+- **Savings**: 71% cost reduction ($0.50 per 1000 leads)
+
+#### **Implementation Strategy**
+1. **Immediate Phase 1**: Dictionary additions (safe, high impact)
+2. **Quick Phase 2**: Validation fixes (safe, enables Afrikaans names)  
+3. **Careful Phase 3**: Logic enhancements (tested, validated)
+4. **Optional Phase 4**: Advanced patterns (if needed)
+
+#### **Success Criteria**
+- [ ] **All 16 production log failures now classify via rules**
+- [ ] **"ANDREAS PETRUS VAN DER MERWE" passes validation** 
+- [ ] **Rule-based hit rate increases from 30% → 80%+**
+- [ ] **LLM usage drops from current high % to <20%**
+- [ ] **Cost per 1000 leads reduces by 70%+**
+
+**✅ SPECIFICATION COMPLETE**: `docs/ENHANCEMENT_2_RULE_CLASSIFICATION_FIXES.md`  
+**🚨 BLOCKING ISSUE**: This prevents LeadScout from achieving cost optimization targets  
+**⚡ READY FOR IMPLEMENTATION**: All technical details specified, phased approach ready
+
+---
 
 ### **Enhancement 1: Immediate Learning Storage** ✅ **IMPLEMENTED**
 **Status**: ✅ **COMPLETE** - Immediate learning active  
