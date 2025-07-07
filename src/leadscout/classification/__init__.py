@@ -28,6 +28,7 @@ Integration:
 - Supports batch processing for large datasets
 """
 
+from .classifier import NameClassifier, create_classifier
 from .dictionaries import EthnicityType, NameDictionaries, NameEntry, get_dictionaries
 from .exceptions import (
     BatchProcessingError,
@@ -40,6 +41,7 @@ from .exceptions import (
     PhoneticMatchingError,
     RuleClassificationError,
 )
+from .llm import LLMClassifier
 from .models import (
     AlternativeClassification,
     BatchClassificationRequest,
@@ -55,8 +57,6 @@ from .models import (
     RuleClassificationDetails,
     ValidationResult,
 )
-from .classifier import NameClassifier, create_classifier
-from .llm import LLMClassifier
 from .phonetic import PhoneticClassifier
 from .rules import RuleBasedClassifier
 

@@ -331,6 +331,7 @@ This document serves as the comprehensive guide for all development activities o
 3. **ALWAYS** check recent commits and current branch status
 4. **ALWAYS** run tests before making any changes
 5. **NEVER** deviate from established architecture patterns
+6. **CRITICAL**: Never use `importlib.reload()` - breaks Pydantic enum validation
 
 ### Quality Gates (Non-Negotiable)
 - All functions must have type hints and docstrings

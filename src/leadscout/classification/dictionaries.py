@@ -51,12 +51,8 @@ class NameEntry:
     ethnicity: EthnicityType
     confidence: float  # 0.0 to 1.0
     frequency: int = 1  # How often this name appears
-    regional_pattern: Optional[
-        str
-    ] = None  # e.g., "KwaZulu-Natal", "Western Cape"
-    linguistic_origin: Optional[
-        str
-    ] = None  # e.g., "Zulu", "Tamil", "Afrikaans"
+    regional_pattern: Optional[str] = None  # e.g., "KwaZulu-Natal", "Western Cape"
+    linguistic_origin: Optional[str] = None  # e.g., "Zulu", "Tamil", "Afrikaans"
     name_type: str = "surname"  # "forename", "surname", "both"
     historical_context: Optional[str] = None  # Notes about origin/usage
 
@@ -88,9 +84,7 @@ class NameDictionaries:
         # Load from files if they exist, otherwise use built-in defaults
         self.dictionaries[EthnicityType.AFRICAN] = self._load_african_names()
         self.dictionaries[EthnicityType.INDIAN] = self._load_indian_names()
-        self.dictionaries[
-            EthnicityType.CAPE_MALAY
-        ] = self._load_cape_malay_names()
+        self.dictionaries[EthnicityType.CAPE_MALAY] = self._load_cape_malay_names()
         self.dictionaries[EthnicityType.COLOURED] = self._load_coloured_names()
         self.dictionaries[EthnicityType.WHITE] = self._load_white_names()
         self.dictionaries[EthnicityType.CHINESE] = self._load_chinese_names()
@@ -295,7 +289,7 @@ class NameDictionaries:
         tsonga_surnames = [
             "Hlungwani",  # High frequency failure
             "Baloyi",
-            "Ngobeni", 
+            "Ngobeni",
             "Novela",
             "Mathonsi",
             "Chauke",
@@ -310,27 +304,85 @@ class NameDictionaries:
         # Modern African first names (HIGH FREQUENCY in SA business)
         modern_african_first_names = [
             # Virtue names (HIGH FREQUENCY in SA business)
-            "Lucky", "Blessing", "Gift", "Miracle", "Hope", "Faith", "Grace",
-            "Precious", "Prince", "Princess", "Success", "Progress", "Victory",
-            "Champion", "Winner", "Justice", "Wisdom", "Peace", "Joy",
-            
+            "Lucky",
+            "Blessing",
+            "Gift",
+            "Miracle",
+            "Hope",
+            "Faith",
+            "Grace",
+            "Precious",
+            "Prince",
+            "Princess",
+            "Success",
+            "Progress",
+            "Victory",
+            "Champion",
+            "Winner",
+            "Justice",
+            "Wisdom",
+            "Peace",
+            "Joy",
             # Day names (common in contemporary SA)
-            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-            
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
             # Achievement names
-            "Doctor", "Engineer", "Professor", "Teacher", "Nurse",
-            
+            "Doctor",
+            "Engineer",
+            "Professor",
+            "Teacher",
+            "Nurse",
             # Modern African compound names
-            "Godknows", "Givenchance", "Thanksgiving", "Goodness", "Patience"
+            "Godknows",
+            "Givenchance",
+            "Thanksgiving",
+            "Goodness",
+            "Patience",
+            # ENHANCEMENT 2: Missing African First Names (from production logs)
+            "Nomvuyiseko",  # Xhosa female name - production failure case
+            "Siyabulela",  # Xhosa male name - production case
+            "Thandoxolo",  # Xhosa name - production case
+            "Mncedi",  # Xhosa male name - production case
+            "Velile",  # Xhosa name - production case
+            "Nosiviwe",  # Xhosa female name variant
+            "Yanga",  # Xhosa name - production case
+            "Sive",  # Xhosa name - production case
+            "Thubalakhe",  # African origin - production case
+            "Mthobeli",  # Xhosa name - production case
+            "Katleho",  # Sotho name meaning "success" - production case
         ]
 
         # Additional critical missing surnames (from production logs)
         critical_missing_surnames = [
             # Sotho/Tswana with MMA prefix
-            "Mmatshepo", "Mmabatho", "Mmapula", "Mmatli", "Mmakoma",
-            
+            "Mmatshepo",
+            "Mmabatho",
+            "Mmapula",
+            "Mmatli",
+            "Mmakoma",
             # Production failures (from logs)
-            "Mabena", "Kandengwa", "Mtimkulu", "Sebetha", "Ramontsa", "Magabane"
+            "Mabena",
+            "Kandengwa",
+            "Mtimkulu",
+            "Sebetha",
+            "Ramontsa",
+            "Magabane",
+            # ENHANCEMENT 2: Missing African Surnames (from production logs)
+            "Msindo",  # African surname - production case
+            "Mahola",  # African surname - production case
+            "Dingwayo",  # Zulu origin surname - production case
+            "Majibane",  # African surname - production case
+            "Gxagxa",  # Xhosa surname (click consonant) - production case
+            "Joka",  # African surname - production case
+            "Maloyi",  # African surname - production case
+            "Khanyile",  # Zulu/Xhosa surname - production case
+            "Mokatsoane",  # Sotho surname - production case
+            "Mkiva",  # African surname - production case
         ]
 
         # Add all names with metadata
@@ -598,6 +650,12 @@ class NameDictionaries:
             "Isaacs",
             "Kamaldien",
             "Latief",
+            # ENHANCEMENT 2: Cape Malay/Colored Names (from production logs)
+            "Simons",  # Common Colored/Cape Malay surname - production case
+            "Redman",  # Cape Malay surname - production case
+            "Minnies",  # Cape Malay surname - production case
+            "Shadley",  # Colored community name
+            "Renard",  # Appears Colored community
         ]
 
         cape_malay_forenames = [
@@ -615,6 +673,8 @@ class NameDictionaries:
             "Khadija",
             "Mohamed",
             "Nadia",
+            # ENHANCEMENT 2: Missing Cape Malay first names
+            "Jalaludien",  # Arabic/Malay origin - production case
             "Omar",
             "Rasheed",
             "Safiya",
@@ -749,7 +809,7 @@ class NameDictionaries:
             "Marais",
             # Missing surnames from test data
             "Myburgh",
-            "Fortuin", 
+            "Fortuin",
             "Gibhard",
             "Vermeulen",
             "Carelse",
@@ -777,16 +837,97 @@ class NameDictionaries:
             "Garcia",
             "Martinez",
             "Robinson",
+            # ENHANCEMENT 2: Missing Surname Components (critical for SA)
+            "Merwe",  # From "van der Merwe" - most common Afrikaans surname
+            "Walt",  # From "van der Walt" - common Afrikaans surname
+            "Plessis",  # From "du Plessis" - common Afrikaans surname
+            "Roux",  # From "le Roux" - common surname
+            "Toit",  # From "du Toit" - common Afrikaans surname
+            "Beer",  # From "de Beer" - Afrikaans surname
+            "Wet",  # From "de Wet" - Afrikaans surname
+            "Pietersen",  # Common patronymic surname - production case
+            "Timmie",  # Surname - production case
+            "Bezuidenhout",  # Afrikaans surname
+            "Wagenaar",  # Dutch/Afrikaans surname
+            "Stander",  # Afrikaans surname
+            "Cloete",  # Afrikaans surname
+            "Beukes",  # Afrikaans surname
+            "Trollip",  # Surname
+            "Parker",  # English surname
+            "Herbst",  # German/Afrikaans surname
+            "Swarts",  # Afrikaans surname
+            "Rensburg",  # From "van Rensburg"
+            "Dewkumar",  # Surname from production logs
+            # ENHANCEMENT 2: Afrikaans Particles (low confidence, for compound detection)
+            "van",  # Afrikaans particle
+            "der",  # Afrikaans particle
+            "de",  # Afrikaans particle
+            "du",  # Afrikaans particle
+            "le",  # Afrikaans particle
+            "von",  # German particle sometimes used
         ]
 
         # English forenames (common in SA)
         english_forenames = [
-            "John", "James", "William", "David", "Michael", "Robert", "Richard",
-            "Ben", "Benjamin", "Christopher", "Daniel", "Matthew", "Andrew",
-            "Mark", "Paul", "Steven", "Kenneth", "Edward", "Brian", "Anthony",
-            "Kevin", "Jason", "Mary", "Jennifer", "Linda", "Elizabeth", "Barbara",
-            "Susan", "Jessica", "Sarah", "Karen", "Nancy", "Lisa", "Betty",
-            "Helen", "Sandra", "Donna", "Carol", "Ruth", "Sharon", "Michelle",
+            "John",
+            "James",
+            "William",
+            "David",
+            "Michael",
+            "Robert",
+            "Richard",
+            "Ben",
+            "Benjamin",
+            "Christopher",
+            "Daniel",
+            "Matthew",
+            "Andrew",
+            "Mark",
+            "Paul",
+            "Steven",
+            "Kenneth",
+            "Edward",
+            "Brian",
+            "Anthony",
+            "Kevin",
+            "Jason",
+            "Mary",
+            "Jennifer",
+            "Linda",
+            "Elizabeth",
+            "Barbara",
+            "Susan",
+            "Jessica",
+            "Sarah",
+            "Karen",
+            "Nancy",
+            "Lisa",
+            "Betty",
+            "Helen",
+            "Sandra",
+            "Donna",
+            "Carol",
+            "Ruth",
+            "Sharon",
+            "Michelle",
+            # ENHANCEMENT 2: Missing English First Names (from production logs)
+            "Adrian",  # Production failure case
+            "Allister",  # English variant - production case
+            "Eunice",  # Common English female name - production case
+            "Bradley",  # Modern English name
+            "Wayne",  # Popular English name
+            "Dylan",  # Welsh/English name
+            "Jonathan",  # English variant of John
+            "Trevor",  # Welsh/English name
+            "Julian",  # Latin/English name
+            "Beryl",  # English female name
+            "Charmaine",  # French/English female name
+            "Julie",  # English female name
+            "Francine",  # French/English female name
+            "Thelma",  # English female name
+            "Innocent",  # English name, sometimes used in SA
+            "Ronel",  # Could be English/Afrikaans
+            "Gershwen",  # English variant
         ]
 
         # Afrikaans forenames
@@ -817,8 +958,7 @@ class NameDictionaries:
             "Lettie",
             # Missing forenames from test data
             "Frederik",
-            "Frederik",
-            "Lodewyk", 
+            "Lodewyk",
             "Jacques",
             "Conrad",
             "Francios",
@@ -826,6 +966,24 @@ class NameDictionaries:
             "Graham",
             "Alicia",
             "Antonia",
+            # ENHANCEMENT 2: Missing Afrikaans First Names (from production logs)
+            "Andreas",  # Classic Afrikaans - production failure case
+            "Petrus",  # Traditional Afrikaans - very common
+            "Heinrich",  # German/Afrikaans - Western Cape common
+            "Pieter",  # Common Afrikaans variant of Peter
+            "Johannes",  # Traditional Afrikaans second name
+            "Gideon",  # Biblical Afrikaans name
+            "Andries",  # Afrikaans variant of Andrew
+            "Cornelius",  # Traditional Afrikaans
+            "Stephanus",  # Traditional Afrikaans variant of Stephen
+            "Francois",  # French/Afrikaans
+            "Hendrik",  # Afrikaans variant of Henry
+            "Willem",  # Afrikaans variant of William
+            "Jacobus",  # Traditional Afrikaans
+            "Christiaan",  # Afrikaans variant of Christian
+            "Albertus",  # Traditional Afrikaans
+            "Frederick",  # German/Afrikaans
+            "Nicolaas",  # Afrikaans variant of Nicholas
         ]
 
         # Add Afrikaans surnames
@@ -850,7 +1008,7 @@ class NameDictionaries:
                 name_type="surname",
             )
 
-        # Add English forenames 
+        # Add English forenames
         for forename in english_forenames:
             names[forename.lower()] = NameEntry(
                 name=forename,
@@ -881,18 +1039,66 @@ class NameDictionaries:
         # Common Chinese surnames in South Africa
         chinese_surnames = [
             # Common in South Africa
-            "Wong", "Chen", "Li", "Wang", "Zhang", "Liu", "Yang", "Huang",
-            "Zhao", "Wu", "Zhou", "Xu", "Sun", "Ma", "Zhu", "Hu", "Guo",
-            "Lin", "He", "Gao", "Liang", "Zheng", "Luo", "Song", "Xie",
-            "Tang", "Han", "Cao", "Deng", "Feng", "Zeng", "Peng", "Yan"
+            "Wong",
+            "Chen",
+            "Li",
+            "Wang",
+            "Zhang",
+            "Liu",
+            "Yang",
+            "Huang",
+            "Zhao",
+            "Wu",
+            "Zhou",
+            "Xu",
+            "Sun",
+            "Ma",
+            "Zhu",
+            "Hu",
+            "Guo",
+            "Lin",
+            "He",
+            "Gao",
+            "Liang",
+            "Zheng",
+            "Luo",
+            "Song",
+            "Xie",
+            "Tang",
+            "Han",
+            "Cao",
+            "Deng",
+            "Feng",
+            "Zeng",
+            "Peng",
+            "Yan",
         ]
 
         # Common Chinese given names
         chinese_given_names = [
             # Common patterns
-            "Wei", "Min", "Jun", "Hui", "Ping", "Hong", "Lei", "Fang",
-            "Jing", "Li", "Xin", "Ming", "Bin", "Qiang", "Gang", "Peng",
-            "Shuhuang", "Xiaoling", "Jiahao", "Yifei", "Zihan", "Ruoxi"
+            "Wei",
+            "Min",
+            "Jun",
+            "Hui",
+            "Ping",
+            "Hong",
+            "Lei",
+            "Fang",
+            "Jing",
+            "Li",
+            "Xin",
+            "Ming",
+            "Bin",
+            "Qiang",
+            "Gang",
+            "Peng",
+            "Shuhuang",
+            "Xiaoling",
+            "Jiahao",
+            "Yifei",
+            "Zihan",
+            "Ruoxi",
         ]
 
         # Add Chinese surnames
@@ -1006,9 +1212,7 @@ class NameDictionaries:
         for name_entry in names:
             self.dictionaries[ethnicity][name_entry.name.lower()] = name_entry
 
-        logger.info(
-            f"Updated {ethnicity.value} dictionary with {len(names)} names"
-        )
+        logger.info(f"Updated {ethnicity.value} dictionary with {len(names)} names")
 
     def save_dictionaries(self, output_dir: Path) -> None:
         """Save dictionaries to JSON files for persistence."""

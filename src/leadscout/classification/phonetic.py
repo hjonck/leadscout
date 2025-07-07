@@ -109,9 +109,7 @@ class PhoneticClassifier:
     def generate_phonetic_codes(self, name: str) -> Dict[str, str]:
         """Generate phonetic codes for a name using all algorithms."""
         if not JELLYFISH_AVAILABLE:
-            logger.warning(
-                "Jellyfish not available - using basic algorithms only"
-            )
+            logger.warning("Jellyfish not available - using basic algorithms only")
             return {"basic": name.lower().replace(" ", "")}
 
         name_clean = self._normalize_for_phonetics(name)
@@ -192,9 +190,7 @@ class PhoneticClassifier:
                 if not code:
                     continue
 
-                matches = self._find_matches_for_algorithm(
-                    algorithm, code, name
-                )
+                matches = self._find_matches_for_algorithm(algorithm, code, name)
                 all_matches.extend(matches)
                 algorithm_results[algorithm] = len(matches)
 
@@ -310,9 +306,7 @@ class PhoneticClassifier:
             # Calculate weighted score
             algorithm_weight = self.algorithm_weights[match.algorithm]
             weighted_score = (
-                match.similarity_score
-                * algorithm_weight
-                * match.original_confidence
+                match.similarity_score * algorithm_weight * match.original_confidence
             )
             ethnicity_scores[match.matched_ethnicity].append(weighted_score)
 
@@ -324,9 +318,7 @@ class PhoneticClassifier:
             final_scores[ethnicity] = sum(top_scores) / len(top_scores)
 
         # Get the best ethnicity
-        best_ethnicity = max(
-            final_scores.keys(), key=lambda e: final_scores[e]
-        )
+        best_ethnicity = max(final_scores.keys(), key=lambda e: final_scores[e])
         best_score = final_scores[best_ethnicity]
 
         # Calculate confidence based on score and consensus
@@ -334,9 +326,7 @@ class PhoneticClassifier:
 
         # Apply consensus bonus
         consensus_score = self._calculate_consensus_score(matches)
-        confidence *= (
-            0.8 + 0.2 * consensus_score
-        )  # Boost if multiple algorithms agree
+        confidence *= 0.8 + 0.2 * consensus_score  # Boost if multiple algorithms agree
 
         # Ensure minimum confidence for phonetic matches
         confidence = max(confidence, 0.60)  # Minimum 60% for phonetic matches
@@ -365,9 +355,7 @@ class PhoneticClassifier:
             alternative_classifications=alternatives,
         )
 
-    def _calculate_consensus_score(
-        self, matches: List[PhoneticMatch]
-    ) -> float:
+    def _calculate_consensus_score(self, matches: List[PhoneticMatch]) -> float:
         """Calculate how much the algorithms agree on ethnicity."""
         if not matches:
             return 0.0
@@ -427,9 +415,7 @@ class PhoneticClassifier:
             for algorithm, code in phonetic_codes.items():
                 if not code:
                     continue
-                matches = self._find_matches_for_algorithm(
-                    algorithm, code, name
-                )
+                matches = self._find_matches_for_algorithm(algorithm, code, name)
                 all_matches.extend(matches)
 
             # Filter by minimum similarity and remove duplicates
@@ -445,9 +431,7 @@ class PhoneticClassifier:
                     seen_names.add(match.matched_name)
 
             # Sort by similarity and limit results
-            filtered_matches.sort(
-                key=lambda x: x.similarity_score, reverse=True
-            )
+            filtered_matches.sort(key=lambda x: x.similarity_score, reverse=True)
             return filtered_matches[:limit]
 
         except Exception as e:

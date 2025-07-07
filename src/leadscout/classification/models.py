@@ -53,15 +53,11 @@ class Classification(BaseModel):
 
     name: str = Field(..., description="Original name that was classified")
     ethnicity: EthnicityType = Field(..., description="Classified ethnicity")
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Confidence score 0-1"
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score 0-1")
     confidence_level: Optional[ConfidenceLevel] = Field(
         default=None, description="Human-readable confidence level"
     )
-    method: ClassificationMethod = Field(
-        ..., description="Classification method used"
-    )
+    method: ClassificationMethod = Field(..., description="Classification method used")
 
     # Method-specific details
     rule_details: Optional["RuleClassificationDetails"] = None
@@ -136,21 +132,13 @@ class PhoneticMatch(BaseModel):
 class PhoneticClassificationDetails(BaseModel):
     """Details for phonetic classification."""
 
-    phonetic_codes: Dict[str, str] = Field(
-        ..., description="Generated phonetic codes"
-    )
-    matches: List[PhoneticMatch] = Field(
-        ..., description="All phonetic matches found"
-    )
+    phonetic_codes: Dict[str, str] = Field(..., description="Generated phonetic codes")
+    matches: List[PhoneticMatch] = Field(..., description="All phonetic matches found")
     algorithm_weights: Dict[str, float] = Field(
         ..., description="Weights used for algorithms"
     )
-    consensus_score: float = Field(
-        ..., description="Agreement between algorithms"
-    )
-    top_algorithm: str = Field(
-        ..., description="Algorithm with highest confidence"
-    )
+    consensus_score: float = Field(..., description="Agreement between algorithms")
+    top_algorithm: str = Field(..., description="Algorithm with highest confidence")
     cached_names_searched: int = Field(
         ..., description="Number of cached names searched"
     )
@@ -179,13 +167,9 @@ class ClassificationRequest(BaseModel):
         default=False, description="Require >85% confidence"
     )
     use_cache: bool = Field(default=True, description="Check cache first")
-    use_phonetic: bool = Field(
-        default=True, description="Use phonetic matching"
-    )
+    use_phonetic: bool = Field(default=True, description="Use phonetic matching")
     use_llm: bool = Field(default=True, description="Use LLM as fallback")
-    context: Optional[
-        Dict[str, Any]
-    ] = None  # Additional context like company name
+    context: Optional[Dict[str, Any]] = None  # Additional context like company name
 
     @field_validator("name")
     @classmethod
@@ -254,28 +238,24 @@ class ClassificationStats(BaseModel):
     llm_classifications: int = 0
     cache_hits: int = 0
     learned_hits: int = 0  # NEW: Learned pattern matches
-    
+
     cache_hit_rate: float = 0.0
     rule_hit_rate: float = 0.0
     phonetic_hit_rate: float = 0.0
     llm_usage_rate: float = 0.0
     learned_hit_rate: float = 0.0  # NEW: Learned pattern usage rate
-    
+
     average_time_ms: float = 0.0
     total_time_ms: float = 0.0
     llm_cost_usd: float = 0.0
     error_count: int = 0
     learning_stores: int = 0  # NEW: LLM classifications stored for learning
-    
+
     performance_targets_met: Dict[str, bool] = Field(default_factory=dict)
-    
+
     # Legacy fields for backward compatibility
-    method_breakdown: Dict[ClassificationMethod, int] = Field(
-        default_factory=dict
-    )
-    confidence_breakdown: Dict[ConfidenceLevel, int] = Field(
-        default_factory=dict
-    )
+    method_breakdown: Dict[ClassificationMethod, int] = Field(default_factory=dict)
+    confidence_breakdown: Dict[ConfidenceLevel, int] = Field(default_factory=dict)
     ethnicity_breakdown: Dict[EthnicityType, int] = Field(default_factory=dict)
     average_confidence: float = 0.0
     average_processing_time_ms: float = 0.0
@@ -287,20 +267,13 @@ class ClassificationStats(BaseModel):
         self.total_classifications += 1
 
         # Update method breakdown
-        method = (
-            ClassificationMethod.CACHE if from_cache else classification.method
-        )
-        self.method_breakdown[method] = (
-            self.method_breakdown.get(method, 0) + 1
-        )
+        method = ClassificationMethod.CACHE if from_cache else classification.method
+        self.method_breakdown[method] = self.method_breakdown.get(method, 0) + 1
 
         # Update confidence breakdown
         if classification.confidence_level is not None:
             self.confidence_breakdown[classification.confidence_level] = (
-                self.confidence_breakdown.get(
-                    classification.confidence_level, 0
-                )
-                + 1
+                self.confidence_breakdown.get(classification.confidence_level, 0) + 1
             )
 
         # Update ethnicity breakdown

@@ -5,7 +5,7 @@ carefully curated dictionaries of names categorized by ethnic groups common
 in South Africa. Achieves 95% coverage target with high confidence.
 
 Key Features:
-- Curated dictionaries for African, Indian, Cape Malay, Coloured, White ethnic groups
+- Curated dictionaries for African, Indian, Cape Malay, Coloured, White groups
 - Priority logic for multi-word names (classify by least European element)
 - Special heuristics for month-surnames (April, September, October → Coloured)
 - Confidence scoring based on dictionary match strength
@@ -24,7 +24,12 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from .dictionaries import EthnicityType, NameDictionaries, NameEntry, get_dictionaries
+from .dictionaries import (
+    EthnicityType,
+    NameDictionaries, 
+    NameEntry,
+    get_dictionaries,
+)
 from .exceptions import (
     MultiWordAnalysisError,
     NameValidationError,
@@ -43,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 class RuleBasedClassifier:
-    """Fast rule-based name classifier using South African ethnic dictionaries."""
+    """Fast rule-based name classifier using SA ethnic dictionaries."""
 
     def __init__(self, dictionaries: Optional[NameDictionaries] = None):
         """Initialize with dictionaries."""
@@ -63,7 +68,7 @@ class RuleBasedClassifier:
             "december",
         }
         logger.info(
-            "RuleBasedClassifier initialized with comprehensive SA dictionaries"
+            "RuleBasedClassifier initialized with comprehensive SA dicts"
         )
 
     def validate_name(self, name: str) -> ValidationResult:
@@ -99,16 +104,22 @@ class RuleBasedClassifier:
 
         # Split into parts for multi-word analysis
         name_parts = [
-            part.strip()
-            for part in re.split(r"[\s\-]+", normalized)
+            part.strip() 
+            for part in re.split(r"[\s\-]+", normalized) 
             if part.strip()
         ]
 
-        # Check for too many parts (likely not a personal name)
-        if len(name_parts) > 4:
+        # ENHANCEMENT 2: Increased limit for SA naming conventions
+        if len(name_parts) > 6:  # Increased from 4 to 6 for Afrikaans patterns
             validation_errors.append(
                 "Name has too many parts (likely not a personal name)"
             )
+        elif len(name_parts) > 4:
+            # Additional validation for 5-6 part names - check for SA patterns
+            if not self._is_valid_sa_compound_name(name_parts):
+                validation_errors.append(
+                    "Complex name structure may not be a personal name"
+                )
 
         # Check for single letter parts (except middle initials)
         single_letters = [part for part in name_parts if len(part) == 1]
@@ -119,9 +130,7 @@ class RuleBasedClassifier:
         normalized_parts = []
         for part in name_parts:
             if len(part) == 1:
-                normalized_parts.append(
-                    part.upper()
-                )  # Single letter -> uppercase
+                normalized_parts.append(part.upper())  # Single letter
             elif part.lower() in ["van", "der", "de", "le", "du", "von"]:
                 normalized_parts.append(part.lower())  # Particles -> lowercase
             else:
@@ -147,7 +156,8 @@ class RuleBasedClassifier:
         validation = self.validate_name(name)
         if not validation.is_valid:
             raise NameValidationError(
-                f"Invalid name '{name}': {', '.join(validation.validation_errors)}",
+                f"Invalid name '{name}': "
+                f"{', '.join(validation.validation_errors)}",
                 name=name,
                 validation_errors=validation.validation_errors,
                 suggested_corrections=validation.suggested_corrections,
@@ -223,8 +233,10 @@ class RuleBasedClassifier:
                     unclassified_parts.append(part)
 
         # Second pass: Use phonetic fallback for unclassified parts if available
-        if unclassified_parts and hasattr(self, 'phonetic_classifier'):
-            logger.info(f"Attempting phonetic fallback for {len(unclassified_parts)} parts")
+        if unclassified_parts and hasattr(self, "phonetic_classifier"):
+            logger.info(
+                f"Attempting phonetic fallback for {len(unclassified_parts)} parts"
+            )
             for part in unclassified_parts:
                 try:
                     # This would require integration with phonetic classifier
@@ -233,18 +245,57 @@ class RuleBasedClassifier:
                 except Exception as e:
                     logger.debug(f"Phonetic fallback failed for {part}: {e}")
 
-        if not individual_classifications:
+        # ENHANCEMENT 2: Enhanced multi-word analysis with SA naming pattern awareness
+        significant_parts = []
+        particle_parts = []
+        initial_parts = []
+
+        afrikaans_particles = ["van", "der", "de", "du", "le", "von", "van't", "ter"]
+
+        for i, part in enumerate(name_parts):
+            if len(part) <= 2:
+                initial_parts.append((i, part))  # Likely initials
+            elif part.lower() in afrikaans_particles:
+                particle_parts.append((i, part))  # Afrikaans particles
+            else:
+                significant_parts.append((i, part))  # Main name components
+
+        # Get classifications for significant parts only
+        significant_classifications = []
+        for classification in individual_classifications:
+            if (
+                classification
+                and len(classification.name) > 2
+                and classification.name.lower() not in afrikaans_particles
+            ):
+                significant_classifications.append(classification)
+
+        # Enhanced failure condition - only fail if NO significant parts classified
+        if not significant_classifications and len(significant_parts) > 0:
+            # Check for compound surname patterns before failing
+            if self._has_compound_surname_pattern(name_parts):
+                compound_result = self._handle_compound_surname_classification(
+                    validation, name_parts, individual_classifications
+                )
+                if compound_result:
+                    return compound_result
+
+            # Enhanced error with better details
             raise MultiWordAnalysisError(
-                f"No individual parts of '{validation.original_name}' could be classified",
+                f"No significant parts of '{validation.original_name}' could be classified",
                 name=validation.original_name,
                 name_parts=name_parts,
-                individual_errors=["No classifiable parts found after rule-based and phonetic attempts"],
+                individual_errors=[
+                    f"Significant parts: {[p[1] for p in significant_parts]}, Particles: {[p[1] for p in particle_parts]}"
+                ],
             )
 
+        # Use significant classifications for consensus
+        if significant_classifications:
+            individual_classifications = significant_classifications
+
         # Apply priority logic: least European element wins
-        priority_classification = self._apply_priority_logic(
-            individual_classifications
-        )
+        priority_classification = self._apply_priority_logic(individual_classifications)
 
         # Create multi-word analysis
         analysis = MultiWordNameAnalysis(
@@ -308,9 +359,7 @@ class RuleBasedClassifier:
 
         if not best_classification:
             # Fallback to highest confidence
-            best_classification = max(
-                classifications, key=lambda c: c.confidence
-            )
+            best_classification = max(classifications, key=lambda c: c.confidence)
 
         return best_classification
 
@@ -444,19 +493,13 @@ class RuleBasedClassifier:
             "total_names": total_names,
             "ethnicity_breakdown": coverage,
             "coverage_percentages": {
-                ethnicity.value: (count / total_names * 100)
-                if total_names > 0
-                else 0
+                ethnicity.value: (count / total_names * 100) if total_names > 0 else 0
                 for ethnicity, count in coverage.items()
             },
-            "special_heuristics": {
-                "month_surnames": len(self._month_surnames)
-            },
+            "special_heuristics": {"month_surnames": len(self._month_surnames)},
         }
 
-    def batch_classify(
-        self, names: List[str]
-    ) -> List[Optional[Classification]]:
+    def batch_classify(self, names: List[str]) -> List[Optional[Classification]]:
         """Classify multiple names efficiently."""
         results = []
 
@@ -503,3 +546,113 @@ class RuleBasedClassifier:
                 return True
 
         return False
+
+    def _is_valid_sa_compound_name(self, name_parts: List[str]) -> bool:
+        """Validate 5-6 part names against known SA naming patterns.
+
+        Args:
+            name_parts: List of name components
+
+        Returns:
+            bool: True if matches valid SA naming pattern
+        """
+        # Convert to lowercase for comparison
+        parts_lower = [part.lower() for part in name_parts]
+
+        # Pattern 1: First Middle van/du/de/le Surname (5 parts)
+        if len(name_parts) == 5:
+            particles = ["van", "du", "de", "le", "von"]
+            # Check if any part is a known particle
+            return any(
+                part in particles for part in parts_lower[1:4]
+            )  # Check positions 2-4
+
+        # Pattern 2: First Middle van der Surname (5 parts)
+        if len(name_parts) == 5:
+            for i in range(len(parts_lower) - 1):
+                if parts_lower[i] == "van" and parts_lower[i + 1] == "der":
+                    return True
+
+        # Pattern 3: First Middle van der Surname Surname (6 parts)
+        if len(name_parts) == 6:
+            for i in range(len(parts_lower) - 1):
+                if parts_lower[i] == "van" and parts_lower[i + 1] == "der":
+                    return True
+
+        # Allow other patterns through for now (conservative approach)
+        return True
+
+    def _has_compound_surname_pattern(self, name_parts: List[str]) -> bool:
+        """Check if name contains known Afrikaans compound surname patterns.
+
+        Args:
+            name_parts: List of name components
+
+        Returns:
+            bool: True if compound pattern detected
+        """
+        parts_lower = [p.lower() for p in name_parts]
+
+        # Pattern 1: van der + surname
+        for i in range(len(parts_lower) - 2):
+            if parts_lower[i] == "van" and parts_lower[i + 1] == "der":
+                return True
+
+        # Pattern 2: du + surname
+        for i in range(len(parts_lower) - 1):
+            if parts_lower[i] == "du":
+                return True
+
+        # Pattern 3: le + surname
+        for i in range(len(parts_lower) - 1):
+            if parts_lower[i] == "le":
+                return True
+
+        return False
+
+    def _handle_compound_surname_classification(
+        self, validation: ValidationResult, name_parts: List[str], individual_results: List[Optional[Classification]]
+    ) -> Optional[Classification]:
+        """Handle classification of names with compound surname patterns.
+
+        ENHANCEMENT 2: Fallback logic for compound surnames.
+        """
+        # Strategy 1: Use classification from first name if available
+        if len(name_parts) > 0:
+            first_name_results = [
+                r
+                for r in individual_results
+                if r and r.name.lower() == name_parts[0].lower()
+            ]
+            if first_name_results:
+                return first_name_results[0]
+
+        # Strategy 2: Default to white classification for Afrikaans patterns
+        if self._is_afrikaans_pattern(name_parts):
+            from .models import (
+                Classification,
+                ClassificationMethod,
+                RuleClassificationDetails,
+            )
+
+            return Classification(
+                name=validation.original_name,
+                ethnicity=EthnicityType.WHITE,
+                confidence=0.7,  # Lower confidence for pattern-based guess
+                method=ClassificationMethod.RULE_BASED,
+                rule_details=RuleClassificationDetails(
+                    matched_dictionary=EthnicityType.WHITE,
+                    matched_name=validation.original_name,
+                    dictionary_confidence=0.7,
+                    special_heuristic_applied="compound_pattern_afrikaans",
+                ),
+            )
+
+        # Strategy 3: Let it fall through to phonetic/LLM
+        return None
+
+    def _is_afrikaans_pattern(self, name_parts: List[str]) -> bool:
+        """Check if name structure suggests Afrikaans origin."""
+        parts_lower = [p.lower() for p in name_parts]
+        afrikaans_indicators = ["van", "der", "du", "le", "de"]
+        return any(indicator in parts_lower for indicator in afrikaans_indicators)

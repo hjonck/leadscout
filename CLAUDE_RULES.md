@@ -37,6 +37,7 @@
 - **REQUIRED**: Verify all fixes with concrete test execution and results
 - **FORBIDDEN**: Saying "this should work" or "expected to work" without testing
 - **MANDATORY**: Provide actual test results and evidence when reporting functionality
+- **CRITICAL**: **NEVER use `importlib.reload()`** - breaks Pydantic enum validation due to class identity conflicts
 
 ### 4. Testing Requirements
 - **MINIMUM**: 80% code coverage for all new code
