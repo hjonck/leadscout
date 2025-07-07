@@ -392,6 +392,34 @@ class JobDatabase:
             else:
                 logger.warning("No lock found to release", file_path=input_file_path)
     
+    def force_clear_lock(self, input_file_path: str) -> bool:
+        """Force clear any existing lock for input file.
+        
+        This method clears locks regardless of which job holds them.
+        Useful for clearing stale locks after interrupted jobs.
+        
+        Args:
+            input_file_path: Path to input file to force unlock
+            
+        Returns:
+            bool: True if a lock was cleared, False if no lock existed
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                DELETE FROM job_locks WHERE input_file_path = ?
+            ''', (input_file_path,))
+            
+            locks_cleared = cursor.rowcount > 0
+            
+            if locks_cleared:
+                logger.warning("Force cleared stale lock", 
+                             file_path=input_file_path,
+                             locks_cleared=cursor.rowcount)
+            else:
+                logger.debug("No locks found to clear", file_path=input_file_path)
+            
+            return locks_cleared
+    
     def get_existing_job(self, input_file_path: str) -> Optional[JobExecution]:
         """Get existing running job for input file.
         
@@ -522,34 +550,49 @@ class JobDatabase:
                         job_id=results[0].job_id,
                         batch_number=results[0].batch_number)
     
-    def get_resume_position(self, job_id: str) -> int:
-        """Get conservative resume position (last_committed_batch + 1).
+    def get_resume_position(self, job_id: str, current_batch_size: Optional[int] = None) -> int:
+        """Get safe resume position using actual processed count.
         
-        Calculates the safe resume position based on the last
-        successfully committed batch.
+        Uses the actual processed_leads_count for resume position instead of
+        calculated position to handle batch size changes safely.
         
         Args:
             job_id: Job identifier
+            current_batch_size: Current batch size (for batch size change detection)
             
         Returns:
-            int: Row index to resume processing from
+            int: Row index to resume processing from (actual processed count)
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute('''
-                SELECT last_committed_batch, batch_size 
+                SELECT last_committed_batch, batch_size, processed_leads_count 
                 FROM job_executions 
                 WHERE job_id = ?
             ''', (job_id,))
             
             row = cursor.fetchone()
             if row:
-                last_batch, batch_size = row
-                resume_row = (last_batch + 1) * batch_size
+                last_batch, stored_batch_size, processed_count = row
+                
+                # Check for batch size change and warn if detected
+                if current_batch_size and stored_batch_size != current_batch_size:
+                    logger.warning(
+                        "Batch size changed - using actual processed count for safe resume",
+                        job_id=job_id,
+                        old_batch_size=stored_batch_size,
+                        new_batch_size=current_batch_size,
+                        resume_from_row=processed_count
+                    )
+                
+                # Always use actual processed count for resume position
+                resume_row = processed_count
                 
                 logger.info("Resume position calculated",
                            job_id=job_id,
                            last_committed_batch=last_batch,
-                           batch_size=batch_size,
+                           batch_size=stored_batch_size,
+                           current_batch_size=current_batch_size,
+                           processed_count=processed_count,
                            resume_row=resume_row)
                 
                 return resume_row

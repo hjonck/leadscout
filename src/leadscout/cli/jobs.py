@@ -49,8 +49,9 @@ def jobs():
 @click.option('--batch-size', default=100, help='Batch size for processing (10-500)')
 @click.option('--resume/--no-resume', default=True, help='Resume existing job if found')
 @click.option('--learning/--no-learning', default=True, help='Enable learning database')
+@click.option('--force', is_flag=True, help='Force start by clearing any stale locks')
 def process(input_file: str, output: Optional[str], batch_size: int, 
-           resume: bool, learning: bool):
+           resume: bool, learning: bool, force: bool):
     """Process leads with resumable job framework and learning analytics.
     
     This command processes Excel files containing lead data with:
@@ -58,6 +59,7 @@ def process(input_file: str, output: Optional[str], batch_size: int,
     - Learning database integration for cost optimization
     - Real-time progress monitoring and error handling
     - Configurable batch processing for optimal performance
+    - Force mode to clear stale locks from interrupted jobs
     
     Args:
         input_file: Path to Excel file containing leads
@@ -65,10 +67,12 @@ def process(input_file: str, output: Optional[str], batch_size: int,
         batch_size: Number of leads to process per batch (default: 100)
         resume: Whether to resume existing job if found (default: True)
         learning: Whether to enable learning database (default: True)
+        force: Clear any stale locks before starting (useful after interruptions)
     
     Examples:
         leadscout jobs process leads.xlsx
         leadscout jobs process leads.xlsx --batch-size 50 --output enriched.xlsx
+        leadscout jobs process leads.xlsx --force  # Clear stale locks
         leadscout jobs process leads.xlsx --no-resume --no-learning
     """
     
@@ -80,6 +84,8 @@ def process(input_file: str, output: Optional[str], batch_size: int,
     click.echo(f"   Batch size: {batch_size}")
     click.echo(f"   Resume enabled: {resume}")
     click.echo(f"   Learning enabled: {learning}")
+    if force:
+        click.echo(f"   Force mode: Clearing any stale locks")
     
     async def run_job():
         try:
@@ -87,7 +93,8 @@ def process(input_file: str, output: Optional[str], batch_size: int,
             runner = ResumableJobRunner(
                 input_file=Path(input_file),
                 output_file=Path(output) if output else None,
-                batch_size=batch_size
+                batch_size=batch_size,
+                force_unlock=force
             )
             
             # Run the job

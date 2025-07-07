@@ -89,13 +89,15 @@ class ResumableJobRunner:
     def __init__(self, 
                  input_file: Path,
                  output_file: Optional[Path] = None,
-                 batch_size: int = 100):
+                 batch_size: int = 100,
+                 force_unlock: bool = False):
         """Initialize resumable job runner.
         
         Args:
             input_file: Path to Excel file containing leads
             output_file: Optional output path (auto-generated if not provided)
             batch_size: Number of leads to process per batch (50-500 recommended)
+            force_unlock: Clear any stale locks for the input file before starting
             
         Raises:
             FileNotFoundError: If input file doesn't exist
@@ -113,6 +115,7 @@ class ResumableJobRunner:
         self.input_file = input_file
         self.output_file = output_file or self._generate_output_path()
         self.batch_size = batch_size
+        self.force_unlock = force_unlock
         self.job_id = None
         
         # Initialize core components
@@ -176,7 +179,15 @@ class ResumableJobRunner:
                 job = self._create_new_job()
                 self.job_id = job.job_id
             
-            # 2. Acquire processing lock
+            # 2. Handle force unlock if requested
+            if self.force_unlock:
+                cleared = self.job_db.force_clear_lock(str(self.input_file))
+                if cleared:
+                    logger.warning("Force mode: Cleared stale lock", 
+                                 file_path=str(self.input_file),
+                                 job_id=job.job_id)
+            
+            # 3. Acquire processing lock
             if not self.job_db.acquire_lock(str(self.input_file), job.job_id):
                 raise RuntimeError(f"Cannot acquire lock for {self.input_file} - another job may be running")
             
@@ -226,7 +237,7 @@ class ResumableJobRunner:
             job: JobExecution instance with job metadata
         """
         # Calculate conservative resume position
-        resume_row = self.job_db.get_resume_position(job.job_id)
+        resume_row = self.job_db.get_resume_position(job.job_id, self.batch_size)
         total_rows = self.streaming_processor.get_total_rows()
         
         # Update job with total rows if not set
