@@ -102,11 +102,9 @@ def process(input_file: str, output: Optional[str], batch_size: int,
             
             click.echo(f"✅ Job completed successfully: {job_id}")
             
-            # Show learning summary if enabled
+            # Show real learning summary using database analysis
             if learning:
-                summary = await runner.get_job_learning_summary(job_id)
-                if summary:
-                    _display_learning_summary(summary)
+                _display_real_learning_summary(job_id)
                 
         except Exception as e:
             click.echo(f"❌ Job failed: {e}", err=True)
@@ -278,8 +276,99 @@ def cancel(job_id: str, force: bool):
     asyncio.run(cancel_job())
 
 
+def _display_real_learning_summary(job_id: str):
+    """Display real learning analytics from database."""
+    import sqlite3
+    import json
+    from pathlib import Path
+    
+    try:
+        db_path = Path("cache/jobs.db")
+        if not db_path.exists():
+            click.echo("⚠️  Job database not found")
+            return
+            
+        conn = sqlite3.connect(db_path)
+        
+        # Get job results
+        results_query = """
+        SELECT classification_result, api_cost, processing_time_ms
+        FROM lead_processing_results 
+        WHERE job_id = ?
+        """
+        cursor = conn.execute(results_query, (job_id,))
+        results = cursor.fetchall()
+        
+        if not results:
+            click.echo("⚠️  No job results found")
+            return
+        
+        # Parse results
+        methods = []
+        total_cost = 0.0
+        
+        for result_json, api_cost, _ in results:
+            try:
+                if result_json:
+                    classification = json.loads(result_json)
+                    methods.append(classification.get('method', 'unknown'))
+                total_cost += api_cost or 0.0
+            except:
+                methods.append('error')
+        
+        # Calculate statistics
+        total_classifications = len(methods)
+        method_counts = {}
+        for method in methods:
+            method_counts[method] = method_counts.get(method, 0) + 1
+        
+        llm_count = method_counts.get('llm', 0)
+        cache_count = method_counts.get('cache', 0)
+        rule_count = method_counts.get('rule_based', 0)
+        phonetic_count = method_counts.get('phonetic', 0)
+        
+        llm_percentage = llm_count / total_classifications * 100 if total_classifications > 0 else 0
+        cache_percentage = cache_count / total_classifications * 100 if total_classifications > 0 else 0
+        non_llm_count = rule_count + phonetic_count + cache_count
+        cost_efficiency = non_llm_count / total_classifications * 100 if total_classifications > 0 else 0
+        
+        # Get learning database stats
+        learning_db_path = Path("cache/llm_learning.db")
+        patterns_count = 0
+        if learning_db_path.exists():
+            learning_conn = sqlite3.connect(learning_db_path)
+            try:
+                patterns_cursor = learning_conn.execute("SELECT COUNT(*) FROM learned_patterns")
+                patterns_count = patterns_cursor.fetchone()[0]
+            except:
+                pass
+            learning_conn.close()
+        
+        click.echo(f"\n🧠 Learning Analytics")
+        click.echo("=" * 40)
+        click.echo(f"  Total Classifications: {total_classifications}")
+        click.echo(f"  LLM Usage: {llm_count} ({llm_percentage:.1f}%)")
+        click.echo(f"  Cache Hits: {cache_count} ({cache_percentage:.1f}%)")
+        click.echo(f"  Rule-based: {rule_count} ({rule_count/total_classifications*100:.1f}%)")
+        click.echo(f"  Patterns in Database: {patterns_count}")
+        
+        click.echo(f"\n💰 Cost Optimization:")
+        click.echo(f"  Actual Cost: ${total_cost:.4f}")
+        click.echo(f"  Cost per Lead: ${total_cost/total_classifications:.6f}")
+        click.echo(f"  Cost Efficiency: {cost_efficiency:.1f}%")
+        
+        click.echo(f"\n🎯 Performance Targets:")
+        click.echo(f"  {'✅' if llm_percentage < 5 else '❌'} LLM Usage < 5%: {llm_percentage:.1f}%")
+        click.echo(f"  {'✅' if cost_efficiency > 50 else '❌'} Cost Efficiency > 50%: {cost_efficiency:.1f}%")
+        click.echo(f"  {'✅' if total_cost == 0 else '⚠️'} Zero Cost Operation: ${total_cost:.4f}")
+        
+        conn.close()
+        
+    except Exception as e:
+        click.echo(f"⚠️  Could not display learning summary: {e}")
+
 def _display_learning_summary(summary: dict):
-    """Display learning analytics summary."""
+    """Display learning analytics summary (legacy placeholder)."""
     
     if not summary:
         return

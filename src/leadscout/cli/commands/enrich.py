@@ -105,19 +105,97 @@ def enrich(
             click.echo("Operation cancelled.")
             ctx.exit(0)
 
-    # TODO: Implement actual enrichment logic
-    # For now, just show what would be done
-    click.echo("🚧 Enrichment functionality is under development")
-    click.echo(f"Would process: {input_file}")
-    click.echo(f"Would output to: {output}")
-    click.echo(
-        f"Configuration: batch_size={batch_size}, max_concurrent={max_concurrent}"
-    )
-
-    if settings:
-        click.echo("✅ Configuration loaded successfully")
-    else:
-        click.echo("⚠️  No configuration found - some features may not work")
-
-    # Placeholder for actual processing
-    click.echo("✅ Command structure ready for implementation")
+    # Import enrichment functionality
+    import asyncio
+    import pandas as pd
+    import time
+    from ...classification.classifier import NameClassifier
+    from ...classification.models import ClassificationMethod
+    
+    click.echo("🚀 Starting LeadScout Enrichment")
+    click.echo("=" * 50)
+    
+    try:
+        # Load input data
+        df = pd.read_excel(input_file)
+        click.echo(f"📊 Loaded {len(df)} leads for processing")
+        
+        # Initialize classifier
+        classifier = NameClassifier()
+        
+        # Process leads
+        results = []
+        start_time = time.time()
+        
+        async def process_leads():
+            click.echo("\n🔍 Processing director names...")
+            
+            for idx, row in df.iterrows():
+                director_name = row['DirectorName']
+                
+                try:
+                    # Classify the name
+                    classification = await classifier.classify_name(director_name)
+                    
+                    # Add enriched data to row
+                    enriched_row = row.copy()
+                    enriched_row['ethnicity_classification'] = classification.ethnicity.value
+                    enriched_row['classification_confidence'] = classification.confidence
+                    enriched_row['classification_method'] = classification.method.value
+                    enriched_row['processing_time_ms'] = getattr(classification, 'processing_time_ms', 0)
+                    
+                    results.append(enriched_row)
+                    
+                    # Show progress for key names or every 10th
+                    if idx < 10 or (idx + 1) % 10 == 0:
+                        method_icon = "⚡" if classification.method == ClassificationMethod.RULE_BASED else "🤖"
+                        click.echo(f"  {idx + 1:2d}. {method_icon} {director_name:<30} → {classification.ethnicity.value:<12} ({classification.method.value})")
+                
+                except Exception as e:
+                    click.echo(f"❌ Error processing {director_name}: {e}")
+                    # Add error row
+                    error_row = row.copy()
+                    error_row['ethnicity_classification'] = 'ERROR'
+                    error_row['classification_confidence'] = 0.0
+                    error_row['classification_method'] = 'error'
+                    error_row['processing_time_ms'] = 0
+                    results.append(error_row)
+        
+        # Run async processing
+        asyncio.run(process_leads())
+        
+        # Calculate performance metrics
+        processing_time = time.time() - start_time
+        success_count = len([r for r in results if r['ethnicity_classification'] != 'ERROR'])
+        
+        # Create output DataFrame
+        output_df = pd.DataFrame(results)
+        
+        # Save results
+        output_df.to_excel(output, index=False)
+        
+        # Show summary
+        click.echo(f"\n📈 Processing Results:")
+        click.echo(f"  Total leads: {len(df)}")
+        click.echo(f"  Successful: {success_count}")
+        click.echo(f"  Errors: {len(results) - success_count}")
+        click.echo(f"  Success rate: {success_count/len(df)*100:.1f}%")
+        
+        click.echo(f"\n🎯 Method Breakdown:")
+        method_counts = output_df['classification_method'].value_counts()
+        for method, count in method_counts.items():
+            if method != 'error':
+                percentage = count / len(output_df) * 100
+                click.echo(f"  {method.title()}: {count} ({percentage:.1f}%)")
+        
+        click.echo(f"\n⏱️ Performance:")
+        click.echo(f"  Total time: {processing_time:.2f} seconds")
+        click.echo(f"  Average per lead: {processing_time/len(df)*1000:.1f} ms")
+        click.echo(f"  Processing rate: {len(df)/processing_time:.1f} leads/second")
+        
+        click.echo(f"\n💾 Saved enriched results to: {output}")
+        click.echo("✅ Enrichment completed successfully!")
+        
+    except Exception as e:
+        click.echo(f"❌ Enrichment failed: {e}", err=True)
+        ctx.exit(1)

@@ -62,20 +62,21 @@ poetry run leadscout config set claude_api_key YOUR_CLAUDE_KEY
 
 ### Basic Usage
 ```bash
-# Enrich a lead file (with automatic resumable processing)
-poetry run leadscout enrich leads.xlsx --output enriched_leads.xlsx
+# Simple lead enrichment (recommended for most users)
+PYTHONPATH=src python -m leadscout.cli.main enrich leads.xlsx --output enriched_leads.xlsx
 
-# Use production job management system
-poetry run leadscout jobs process leads.xlsx --batch-size 100
-poetry run leadscout jobs list
-poetry run leadscout jobs status <job-id>
+# Production job management with resumable processing
+PYTHONPATH=src python -m leadscout.cli.main jobs process leads.xlsx --batch-size 100
 
-# Monitor learning system performance
-poetry run leadscout cache status
-poetry run leadscout analytics learning
+# Export job results after completion
+python export_job_results.py <job-id> output_file.xlsx
+
+# Comprehensive statistical analysis
+python analyze_job_statistics.py <job-id>  # Specific job
+python analyze_job_statistics.py           # All jobs
 
 # View available commands
-poetry run leadscout --help
+PYTHONPATH=src python -m leadscout.cli.main --help
 ```
 
 ## 📊 Input Format
@@ -160,64 +161,88 @@ cache:
 
 ## 🔧 Production CLI Commands
 
-### Enterprise Job Management
+### ✅ **Working Commands**
+
+#### Lead Enrichment
 ```bash
-# Process leads with resumable job framework
-leadscout jobs process input.xlsx --batch-size 100 --enable-learning
+# Simple enrichment (recommended)
+PYTHONPATH=src python -m leadscout.cli.main enrich input.xlsx --output enriched.xlsx
+PYTHONPATH=src python -m leadscout.cli.main enrich input.xlsx --batch-size 50
 
-# Monitor all jobs and their status
-leadscout jobs list
-leadscout jobs status <job-id>
-
-# Export results and analytics
-leadscout jobs export <job-id> --format excel
-leadscout jobs cancel <job-id>  # If needed
-
-# Resume interrupted jobs automatically
-leadscout jobs process input.xlsx  # Auto-detects and resumes
+# Production job management with resumable processing
+PYTHONPATH=src python -m leadscout.cli.main jobs process input.xlsx --batch-size 100
+PYTHONPATH=src python -m leadscout.cli.main jobs process input.xlsx --force  # Clear stale locks
 ```
 
-### Learning System Analytics
+#### Job Management & Export
 ```bash
-# Monitor learning system performance
-leadscout analytics learning
-leadscout analytics patterns
-leadscout analytics cost-optimization
+# Export completed job results
+python export_job_results.py <job-id> output_file.xlsx
 
-# Learning database statistics
-leadscout cache learning-stats
-leadscout cache pattern-effectiveness
+# Comprehensive statistical analysis
+python analyze_job_statistics.py <job-id>    # Analyze specific job
+python analyze_job_statistics.py             # Analyze all jobs with learning stats
+
+# Quick database queries
+sqlite3 cache/jobs.db "SELECT job_id, status, processed_leads_count FROM job_executions;"
+sqlite3 cache/llm_learning.db "SELECT COUNT(*) FROM llm_classifications;"
 ```
 
-### Cache & Performance Management
-```bash
-# View comprehensive cache statistics
-leadscout cache status
-leadscout cache learning-status
+#### Statistical Analysis Features
+The `analyze_job_statistics.py` command provides comprehensive analysis including:
 
-# Performance monitoring
-leadscout benchmark system
-leadscout benchmark classification
-leadscout benchmark end-to-end
+**Job Performance Metrics:**
+- Processing speed (leads/second) and timing analysis
+- Method breakdown (rule-based, LLM, phonetic, cache percentages)
+- Ethnicity distribution analysis
+- API cost tracking and cost-per-lead calculations
 
-# Maintenance operations
-leadscout cache clean
-leadscout cache rebuild
-leadscout cache export cache_data.json
+**Learning System Analytics:**
+- Learning database pattern generation efficiency
+- Cache hit rates and learning effectiveness
+- Cost optimization through accumulated learning
+- Performance target validation (LLM usage < 5%, cost efficiency > 80%)
+
+**Example Output:**
+```
+📊 Job Analysis: 30cffb88-6446-4412-ab2c-e03c6102bb27
+   Total Leads: 539
+   🎯 Classification Methods:
+     Rule_Based: 204 (37.8%)    # Fast, cost-free
+     LLM: 169 (31.4%)           # AI-powered  
+     Phonetic: 115 (21.3%)      # Pattern matching
+     Cache: 51 (9.5%)           # Previously learned
+   
+   🧠 Learning Effectiveness:
+     Non-LLM Classifications: 370 (68.6%)
+     LLM Usage: 169 (31.4%)
+     Learning Efficiency: 1.68 patterns per LLM call
 ```
 
-### Configuration & Validation
+#### System Information
 ```bash
-# Set API keys and configuration
-leadscout config set openai_api_key YOUR_KEY
-leadscout config set claude_api_key YOUR_KEY
-leadscout config set learning_enabled true
+# View all available commands
+PYTHONPATH=src python -m leadscout.cli.main --help
+PYTHONPATH=src python -m leadscout.cli.main enrich --help
+PYTHONPATH=src python -m leadscout.cli.main jobs --help
 
-# System validation and health checks
-leadscout config show
-leadscout config test
-leadscout validate system
-leadscout validate integration
+# Check command options
+PYTHONPATH=src python -m leadscout.cli.main jobs process --help
+```
+
+### 🚧 **Commands Under Development**
+These commands show helpful information but are not fully implemented:
+
+```bash
+# Configuration management (placeholders)
+PYTHONPATH=src python -m leadscout.cli.main config set openai_api_key YOUR_KEY
+PYTHONPATH=src python -m leadscout.cli.main config show
+PYTHONPATH=src python -m leadscout.cli.main config test
+
+# Cache management (placeholders) 
+PYTHONPATH=src python -m leadscout.cli.main cache status
+PYTHONPATH=src python -m leadscout.cli.main cache clean
+PYTHONPATH=src python -m leadscout.cli.main cache export
 ```
 
 ## 📁 Project Structure
