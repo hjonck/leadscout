@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
-"""Read and display the test results."""
+"""
+Quick Results Checker.
+
+Read and display formatted test results from Excel files.
+Useful for quick result validation and formatted output display.
+
+Key Features:
+- Excel file reading and parsing
+- Formatted result display
+- Quick validation of test outputs
+- Error handling for missing files
+
+Usage:
+    python check_results.py
+    
+When to use:
+- Quick result validation
+- Formatted display of test outputs
+- Manual verification of processing results
+- Development and debugging workflows
+"""
 
 import pandas as pd
 

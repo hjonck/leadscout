@@ -578,6 +578,115 @@ def cancel(job_id: str, force: bool):
     asyncio.run(cancel_job())
 
 
+@jobs.command("export-for-confirmation")
+@click.argument('job_id')
+@click.option('--output', '-o', type=click.Path(), help='Output Excel file path')
+@click.option('--include-spatial/--no-spatial', default=True, 
+              help='Include Developer B\'s spatial enhancements')
+def export_for_confirmation(job_id: str, output: Optional[str], include_spatial: bool):
+    """Export job with enhanced 21-column format for dialler team confirmation.
+    
+    Creates Excel file with:
+    - Original lead data (11 columns)
+    - Enhanced AI predictions with spatial intelligence (5 columns)
+    - Empty confirmation dropdowns for dialler team (2 columns)
+    - Metadata for precise record tracking (3 columns)
+    
+    Features:
+    - Professional Excel dropdown validation for ethnicity selection
+    - Confidence-based color coding (green/yellow/red) 
+    - Spatial context integration with Developer B's learning system
+    - Complete source traceability for confirmation upload
+    
+    Args:
+        job_id: Job identifier to export
+        output: Optional output file path (auto-generated if not provided)
+        include_spatial: Whether to include spatial intelligence enhancements
+    
+    Examples:
+        leadscout jobs export-for-confirmation abc123
+        leadscout jobs export-for-confirmation abc123 --output dialler_leads.xlsx
+        leadscout jobs export-for-confirmation abc123 --no-spatial
+    """
+    
+    async def run_export():
+        try:
+            from ..core.confirmation_excel_export import ConfirmationExcelExporter
+            
+            click.echo(f"📋 Preparing enhanced export for confirmation: {job_id}")
+            click.echo(f"   Format: 21-column Excel with dropdowns and color coding")
+            click.echo(f"   Spatial enhancement: {'enabled' if include_spatial else 'disabled'}")
+            
+            if output:
+                output_path = Path(output)
+                click.echo(f"   Output: {output_path}")
+            else:
+                click.echo(f"   Output: auto-generated filename")
+            
+            # Initialize exporter
+            exporter = ConfirmationExcelExporter()
+            
+            # Run export
+            final_output_path = await exporter.export_job_for_confirmation(
+                job_id=job_id,
+                output_path=Path(output) if output else None,
+                include_spatial_enhancement=include_spatial
+            )
+            
+            click.echo(f"\n✅ Enhanced export completed successfully!")
+            click.echo(f"📁 File: {final_output_path}")
+            
+            # Get and display export statistics
+            try:
+                stats = await exporter.get_export_statistics(job_id)
+                
+                if "error" not in stats:
+                    click.echo(f"\n📊 Export Statistics:")
+                    click.echo(f"   Total records: {stats['total_records']}")
+                    
+                    # Confidence breakdown
+                    confidence = stats['confidence_metrics']
+                    click.echo(f"   High confidence (>80%): {confidence['high_confidence_count']} "
+                              f"({confidence['high_confidence_percentage']}%)")
+                    click.echo(f"   Medium confidence (60-80%): {confidence['medium_confidence_count']}")
+                    click.echo(f"   Low confidence (<60%): {confidence['low_confidence_count']}")
+                    click.echo(f"   Average confidence: {confidence['average_confidence']}")
+                    
+                    # Method breakdown
+                    if stats['method_distribution']:
+                        click.echo(f"\n   Classification methods:")
+                        for method, count in stats['method_distribution'].items():
+                            percentage = (count / stats['total_records']) * 100
+                            click.echo(f"     {method}: {count} ({percentage:.1f}%)")
+                    
+                    # Ethnicity distribution
+                    if stats['ethnicity_distribution']:
+                        click.echo(f"\n   Ethnicity predictions:")
+                        for ethnicity, count in stats['ethnicity_distribution'].items():
+                            percentage = (count / stats['total_records']) * 100
+                            click.echo(f"     {ethnicity}: {count} ({percentage:.1f}%)")
+                
+            except Exception as e:
+                click.echo(f"⚠️  Could not display statistics: {e}")
+            
+            click.echo(f"\n💡 Next Steps:")
+            click.echo(f"   1. Send Excel file to dialler team")
+            click.echo(f"   2. Team uses dropdowns in 'confirmed_ethnicity' column")
+            click.echo(f"   3. Upload confirmations with: leadscout ethnicity upload-confirmations")
+            
+        except Exception as e:
+            click.echo(f"❌ Enhanced export failed: {e}", err=True)
+            logger.error("Enhanced export failed", job_id=job_id, error=str(e))
+            raise click.ClickException(str(e))
+    
+    # Run the async export
+    try:
+        asyncio.run(run_export())
+    except Exception as e:
+        click.echo(f"\n❌ Export error: {e}", err=True)
+        raise
+
+
 def _display_real_learning_summary(job_id: str):
     """Display real learning analytics from database."""
     import sqlite3

@@ -384,7 +384,7 @@ class ResumableJobRunner:
                 director_name = str(lead_data.get('DirectorName', '')).strip()
                 
                 if not director_name or director_name.lower() in ['nan', 'none', '', 'null']:
-                    # Handle missing director name
+                    # Handle missing director name - still capture contact data
                     result = LeadResult(
                         job_id=job_id,
                         row_index=lead_data['_source_row_index'],
@@ -396,7 +396,21 @@ class ResumableJobRunner:
                         error_message='No director name provided',
                         error_type='validation_error',
                         processing_time_ms=0.0,
-                        api_provider='validation'
+                        api_provider='validation',
+                        
+                        # Still capture contact fields for dialling
+                        cell_number=self._safe_extract_field(lead_data, 'CellNumber'),
+                        contact_number=self._safe_extract_field(lead_data, 'ContactNumber'),
+                        email_address=self._safe_extract_field(lead_data, 'EmailAddress'),
+                        director_cell=self._safe_extract_field(lead_data, 'DirectorCell'),
+                        trading_as_name=self._safe_extract_field(lead_data, 'TradingAsName'),
+                        keyword=self._safe_extract_field(lead_data, 'Keyword'),
+                        source_row_number=lead_data['_source_row_index'] + 2,
+                        original_entity_name=str(lead_data.get('EntityName', '')),
+                        original_director_name='NO_DIRECTOR_NAME',
+                        original_registered_address=self._safe_extract_field(lead_data, 'RegisteredAddress'),
+                        original_registered_city=self._safe_extract_field(lead_data, 'RegisteredAddressCity'),
+                        original_registered_province=self._safe_extract_field(lead_data, 'RegisteredAddressProvince')
                     )
                 else:
                     # Classify the director name with error handling
@@ -405,7 +419,7 @@ class ResumableJobRunner:
                     processing_time_ms = (time.time() - lead_start_time) * 1000
                     
                     if classification:
-                        # Successful classification
+                        # Successful classification with ALL contact fields
                         result = LeadResult(
                             job_id=job_id,
                             row_index=lead_data['_source_row_index'],
@@ -416,7 +430,25 @@ class ResumableJobRunner:
                             processing_status='success',
                             api_provider=classification.method.value if hasattr(classification.method, 'value') else str(classification.method),
                             processing_time_ms=processing_time_ms,
-                            api_cost=getattr(classification, 'cost_usd', 0.0)
+                            api_cost=getattr(classification, 'cost_usd', 0.0),
+                            
+                            # CRITICAL: Extract ALL contact fields for dialling operations
+                            cell_number=self._safe_extract_field(lead_data, 'CellNumber'),
+                            contact_number=self._safe_extract_field(lead_data, 'ContactNumber'),
+                            email_address=self._safe_extract_field(lead_data, 'EmailAddress'),
+                            director_cell=self._safe_extract_field(lead_data, 'DirectorCell'),
+                            
+                            # Business fields for context
+                            trading_as_name=self._safe_extract_field(lead_data, 'TradingAsName'),
+                            keyword=self._safe_extract_field(lead_data, 'Keyword'),
+                            
+                            # Source tracking fields
+                            source_row_number=lead_data['_source_row_index'] + 2,  # Excel 1-based + header
+                            original_entity_name=str(lead_data.get('EntityName', '')),
+                            original_director_name=director_name,
+                            original_registered_address=self._safe_extract_field(lead_data, 'RegisteredAddress'),
+                            original_registered_city=self._safe_extract_field(lead_data, 'RegisteredAddressCity'),
+                            original_registered_province=self._safe_extract_field(lead_data, 'RegisteredAddressProvince')
                         )
                         
                         # ENHANCEMENT 1: Track immediate learning statistics
@@ -440,7 +472,7 @@ class ResumableJobRunner:
                             batch_learning_stats['cost_saved'] += 0.002
                         
                     else:
-                        # Classification failed
+                        # Classification failed - still capture contact data
                         result = LeadResult(
                             job_id=job_id,
                             row_index=lead_data['_source_row_index'],
@@ -452,7 +484,21 @@ class ResumableJobRunner:
                             error_message='Classification failed - no result returned',
                             error_type='classification_error',
                             processing_time_ms=processing_time_ms,
-                            api_provider='unknown'
+                            api_provider='unknown',
+                            
+                            # Still capture contact fields for dialling
+                            cell_number=self._safe_extract_field(lead_data, 'CellNumber'),
+                            contact_number=self._safe_extract_field(lead_data, 'ContactNumber'),
+                            email_address=self._safe_extract_field(lead_data, 'EmailAddress'),
+                            director_cell=self._safe_extract_field(lead_data, 'DirectorCell'),
+                            trading_as_name=self._safe_extract_field(lead_data, 'TradingAsName'),
+                            keyword=self._safe_extract_field(lead_data, 'Keyword'),
+                            source_row_number=lead_data['_source_row_index'] + 2,
+                            original_entity_name=str(lead_data.get('EntityName', '')),
+                            original_director_name=director_name,
+                            original_registered_address=self._safe_extract_field(lead_data, 'RegisteredAddress'),
+                            original_registered_city=self._safe_extract_field(lead_data, 'RegisteredAddressCity'),
+                            original_registered_province=self._safe_extract_field(lead_data, 'RegisteredAddressProvince')
                         )
                 
             except Exception as e:
@@ -469,7 +515,21 @@ class ResumableJobRunner:
                     processing_status='failed',
                     error_message=str(e),
                     error_type=self._classify_error_type(e),
-                    processing_time_ms=processing_time_ms
+                    processing_time_ms=processing_time_ms,
+                    
+                    # Still capture contact fields even on exception
+                    cell_number=self._safe_extract_field(lead_data, 'CellNumber'),
+                    contact_number=self._safe_extract_field(lead_data, 'ContactNumber'),
+                    email_address=self._safe_extract_field(lead_data, 'EmailAddress'),
+                    director_cell=self._safe_extract_field(lead_data, 'DirectorCell'),
+                    trading_as_name=self._safe_extract_field(lead_data, 'TradingAsName'),
+                    keyword=self._safe_extract_field(lead_data, 'Keyword'),
+                    source_row_number=lead_data['_source_row_index'] + 2,
+                    original_entity_name=str(lead_data.get('EntityName', '')),
+                    original_director_name=str(lead_data.get('DirectorName', '')),
+                    original_registered_address=self._safe_extract_field(lead_data, 'RegisteredAddress'),
+                    original_registered_city=self._safe_extract_field(lead_data, 'RegisteredAddressCity'),
+                    original_registered_province=self._safe_extract_field(lead_data, 'RegisteredAddressProvince')
                 )
                 
                 self.processing_stats['errors_handled'] += 1
@@ -728,6 +788,36 @@ class ResumableJobRunner:
             return ProviderType.OPENAI
         elif 'anthropic' in error_str or 'claude' in error_str:
             return ProviderType.ANTHROPIC
+    
+    def _safe_extract_field(self, lead_data: Dict[str, Any], field_name: str) -> Optional[str]:
+        """Safely extract field from lead data, handling NaN and None values.
+        
+        Args:
+            lead_data: Dictionary containing lead information
+            field_name: Name of field to extract
+            
+        Returns:
+            Cleaned string value or None if field is missing/empty
+        """
+        value = lead_data.get(field_name)
+        
+        if value is None:
+            return None
+        
+        # Handle pandas NaN values
+        if hasattr(value, '__class__') and value.__class__.__name__ == 'float':
+            import math
+            if math.isnan(value):
+                return None
+        
+        # Convert to string and clean
+        str_value = str(value).strip()
+        
+        # Handle common "empty" values
+        if str_value.lower() in ['nan', 'none', 'null', '', 'n/a', 'na']:
+            return None
+        
+        return str_value
         
         return None
     

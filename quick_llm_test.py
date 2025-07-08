@@ -1,7 +1,25 @@
 #!/usr/bin/env python3
 """
-Quick LLM test with just 10 leads to verify functionality.
-Output results to file immediately for inspection.
+Quick LLM Functionality Test.
+
+Fast LLM connectivity and classification test with small dataset.
+Verifies LLM integration and saves results for immediate inspection.
+
+Key Features:
+- Quick 10-lead test dataset
+- LLM connectivity validation
+- Classification functionality testing
+- Immediate Excel output for inspection
+- Error handling and diagnostics
+
+Usage:
+    python quick_llm_test.py
+    
+When to use:
+- LLM connectivity validation
+- Quick functionality testing
+- API integration verification
+- Development environment validation
 """
 
 import asyncio

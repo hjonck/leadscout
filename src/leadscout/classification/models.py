@@ -70,6 +70,9 @@ class Classification(BaseModel):
     alternative_classifications: List["AlternativeClassification"] = Field(
         default_factory=list
     )
+    context: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional context information"
+    )
 
     @model_validator(mode="after")
     def set_confidence_level(self) -> "Classification":

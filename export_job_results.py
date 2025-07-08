@@ -3,6 +3,24 @@
 Quick job results exporter.
 
 Export processed lead data from the job database to Excel format.
+Provides standalone job data export when CLI interface is not preferred.
+
+Key Features:
+- Direct SQLite database access
+- JSON classification parsing  
+- Excel format output with statistics
+- Comprehensive error handling
+
+Usage:
+    python export_job_results.py <job_id> [output_path]
+    
+When to use:
+- Quick manual exports outside of CLI workflow
+- Custom export processing or formatting
+- Integration with external tools
+- Direct database access needs
+
+Alternative: Use `poetry run leadscout jobs export <job-id>` for CLI interface
 """
 
 import sqlite3

@@ -1,10 +1,24 @@
 """
-Analyze learning database performance and patterns.
+Learning Database Performance Analyzer.
 
-Shows what the system has learned and cost optimization achieved.
-Provides detailed insights into the auto-improvement system performance.
+Deep analysis of the learning database performance and pattern effectiveness.
+Shows learning system optimization and cost savings achieved.
 
-Developer B - Classification & Enrichment Specialist
+Key Features:
+- Learning database statistics
+- Pattern generation analysis
+- Cost optimization tracking
+- Ethnicity distribution in learning data
+- Learning efficiency metrics
+
+Usage:
+    python analyze_learning_performance.py
+    
+When to use:
+- Learning system research and optimization
+- Cost savings analysis and reporting
+- Pattern effectiveness evaluation
+- Machine learning insights
 """
 
 from src.leadscout.classification.learning_database import LLMLearningDatabase

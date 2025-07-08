@@ -12,6 +12,7 @@ import click
 from ..core.config import get_settings
 from .commands import cache, config, enrich
 from .jobs import jobs
+from .ethnicity import ethnicity
 
 
 @click.group()
@@ -63,6 +64,7 @@ cli.add_command(enrich.enrich)
 cli.add_command(cache.cache)
 cli.add_command(config.config)
 cli.add_command(jobs)
+cli.add_command(ethnicity)
 
 
 if __name__ == "__main__":

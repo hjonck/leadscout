@@ -129,6 +129,25 @@ class LeadResult:
     phonetic_codes: Optional[Dict[str, Any]] = None  # Generated phonetic variants
     learned_patterns: Optional[Dict[str, Any]] = None  # Extracted patterns for rule generation
     confidence_factors: Optional[Dict[str, Any]] = None  # Factors that influenced LLM confidence
+    
+    # Source tracking fields for ethnicity confirmation support
+    source_row_number: Optional[int] = None  # 1-based Excel row number
+    source_file_identifier: Optional[str] = None  # Unique file identifier
+    original_entity_name: Optional[str] = None  # Original entity name from source
+    original_director_name: Optional[str] = None  # Original director name from source
+    original_registered_address: Optional[str] = None  # Original registered address
+    original_registered_city: Optional[str] = None  # Original registered city
+    original_registered_province: Optional[str] = None  # Original registered province
+    
+    # Contact fields for dialling operations (CRITICAL FOR BUSINESS)
+    cell_number: Optional[str] = None  # Primary cell number
+    contact_number: Optional[str] = None  # Primary contact number
+    email_address: Optional[str] = None  # Email address
+    director_cell: Optional[str] = None  # Director's cell number
+    
+    # Business fields for context and targeting
+    trading_as_name: Optional[str] = None  # Trading as name
+    keyword: Optional[str] = None  # Business keyword/category
 
 class JobDatabase:
     """SQLite database manager for resumable jobs.
@@ -214,6 +233,22 @@ class JobDatabase:
                     phonetic_codes JSON,
                     learned_patterns JSON,
                     confidence_factors JSON,
+                    -- Source tracking columns for ethnicity confirmation support
+                    source_row_number INTEGER,
+                    source_file_identifier TEXT,
+                    original_entity_name TEXT,
+                    original_director_name TEXT,
+                    original_registered_address TEXT,
+                    original_registered_city TEXT,
+                    original_registered_province TEXT,
+                    -- Contact fields for dialling operations (CRITICAL FOR BUSINESS)
+                    cell_number TEXT,
+                    contact_number TEXT,
+                    email_address TEXT,
+                    director_cell TEXT,
+                    -- Business fields for context and targeting
+                    trading_as_name TEXT,
+                    keyword TEXT,
                     PRIMARY KEY (job_id, row_index),
                     FOREIGN KEY (job_id) REFERENCES job_executions(job_id)
                 );
@@ -524,7 +559,23 @@ class JobDatabase:
                     result.api_cost, result.created_at or datetime.now(),
                     json.dumps(result.phonetic_codes) if result.phonetic_codes else None,
                     json.dumps(result.learned_patterns) if result.learned_patterns else None,
-                    json.dumps(result.confidence_factors) if result.confidence_factors else None
+                    json.dumps(result.confidence_factors) if result.confidence_factors else None,
+                    # Source tracking fields
+                    result.source_row_number,
+                    result.source_file_identifier,
+                    result.original_entity_name,
+                    result.original_director_name,
+                    result.original_registered_address,
+                    result.original_registered_city,
+                    result.original_registered_province,
+                    # Contact fields for dialling operations
+                    result.cell_number,
+                    result.contact_number,
+                    result.email_address,
+                    result.director_cell,
+                    # Business fields for context
+                    result.trading_as_name,
+                    result.keyword
                 ))
             
             # Batch insert all results
@@ -534,8 +585,12 @@ class JobDatabase:
                     classification_result, processing_status, retry_count,
                     error_message, error_type, processing_time_ms, api_provider,
                     api_cost, created_at, phonetic_codes, learned_patterns,
-                    confidence_factors
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    confidence_factors, source_row_number, source_file_identifier,
+                    original_entity_name, original_director_name, original_registered_address,
+                    original_registered_city, original_registered_province,
+                    cell_number, contact_number, email_address, director_cell,
+                    trading_as_name, keyword
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', insert_data)
             
             # Extract learning patterns from successful LLM classifications

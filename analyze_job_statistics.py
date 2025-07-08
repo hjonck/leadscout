@@ -3,6 +3,25 @@
 Job Statistics Analyzer.
 
 Comprehensive analysis of job processing results with learning analytics.
+Provides standalone analysis when CLI interface is not preferred.
+
+Key Features:
+- Single job detailed analysis
+- All jobs summary statistics
+- Learning database analysis
+- Performance target validation
+- Method breakdown and ethnicity distribution
+
+Usage:
+    python analyze_job_statistics.py [job_id]
+    
+When to use:
+- Detailed analysis outside CLI workflow  
+- Custom analytics and reporting
+- Research and development analysis
+- Integration with external analytics tools
+
+Alternative: Use `poetry run leadscout jobs analyze <job-id>` for CLI interface
 """
 
 import sqlite3
