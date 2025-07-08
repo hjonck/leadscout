@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .dictionaries import (
     EthnicityType,
-    NameDictionaries, 
+    NameDictionaries,
     NameEntry,
     get_dictionaries,
 )
@@ -39,7 +39,6 @@ from .models import (
     AlternativeClassification,
     Classification,
     ClassificationMethod,
-    MultiWordNameAnalysis,
     RuleClassificationDetails,
     ValidationResult,
 )
@@ -104,8 +103,8 @@ class RuleBasedClassifier:
 
         # Split into parts for multi-word analysis
         name_parts = [
-            part.strip() 
-            for part in re.split(r"[\s\-]+", normalized) 
+            part.strip()
+            for part in re.split(r"[\s\-]+", normalized)
             if part.strip()
         ]
 
@@ -218,7 +217,7 @@ class RuleBasedClassifier:
     def _classify_multi_word_name(
         self, validation: ValidationResult
     ) -> Classification:
-        """Classify multi-word name using least European element priority with phonetic fallback."""
+        """Classify multi-word name using least European element priority."""
         name_parts = validation.name_parts
         individual_classifications = []
         unclassified_parts = []
@@ -232,10 +231,11 @@ class RuleBasedClassifier:
                 else:
                     unclassified_parts.append(part)
 
-        # Second pass: Use phonetic fallback for unclassified parts if available
+        # Second pass: Use phonetic fallback for unclassified parts
         if unclassified_parts and hasattr(self, "phonetic_classifier"):
             logger.info(
-                f"Attempting phonetic fallback for {len(unclassified_parts)} parts"
+                f"Attempting phonetic fallback for "
+                f"{len(unclassified_parts)} parts"
             )
             for part in unclassified_parts:
                 try:
@@ -245,12 +245,14 @@ class RuleBasedClassifier:
                 except Exception as e:
                     logger.debug(f"Phonetic fallback failed for {part}: {e}")
 
-        # ENHANCEMENT 2: Enhanced multi-word analysis with SA naming pattern awareness
+        # ENHANCEMENT 2: Enhanced multi-word analysis with SA patterns
         significant_parts = []
         particle_parts = []
         initial_parts = []
 
-        afrikaans_particles = ["van", "der", "de", "du", "le", "von", "van't", "ter"]
+        afrikaans_particles = [
+            "van", "der", "de", "du", "le", "von", "van't", "ter"
+        ]
 
         for i, part in enumerate(name_parts):
             if len(part) <= 2:
@@ -270,7 +272,7 @@ class RuleBasedClassifier:
             ):
                 significant_classifications.append(classification)
 
-        # Enhanced failure condition - only fail if NO significant parts classified
+        # Enhanced failure condition - only fail if NO significant parts
         if not significant_classifications and len(significant_parts) > 0:
             # Check for compound surname patterns before failing
             if self._has_compound_surname_pattern(name_parts):
@@ -282,11 +284,13 @@ class RuleBasedClassifier:
 
             # Enhanced error with better details
             raise MultiWordAnalysisError(
-                f"No significant parts of '{validation.original_name}' could be classified",
+                f"No significant parts of '{validation.original_name}' "
+                f"could be classified",
                 name=validation.original_name,
                 name_parts=name_parts,
                 individual_errors=[
-                    f"Significant parts: {[p[1] for p in significant_parts]}, Particles: {[p[1] for p in particle_parts]}"
+                    f"Significant parts: {[p[1] for p in significant_parts]}, "
+                    f"Particles: {[p[1] for p in particle_parts]}"
                 ],
             )
 
@@ -295,32 +299,12 @@ class RuleBasedClassifier:
             individual_classifications = significant_classifications
 
         # Apply priority logic: least European element wins
-        priority_classification = self._apply_priority_logic(individual_classifications)
-
-        # Create multi-word analysis
-        analysis = MultiWordNameAnalysis(
-            original_name=validation.original_name,
-            name_parts=name_parts,
-            individual_classifications=individual_classifications,
-            priority_classification=priority_classification,
-            conflicting_ethnicities=len(
-                set(c.ethnicity for c in individual_classifications)
-            )
-            > 1,
-            european_elements=[
-                c.name
-                for c in individual_classifications
-                if c.ethnicity == EthnicityType.WHITE
-            ],
-            non_european_elements=[
-                c.name
-                for c in individual_classifications
-                if c.ethnicity != EthnicityType.WHITE
-            ],
-            reasoning=self._explain_priority_logic(
-                individual_classifications, priority_classification
-            ),
+        priority_classification = self._apply_priority_logic(
+            individual_classifications
         )
+
+        # Store multi-word analysis (not currently used but kept for future)
+        # analysis = MultiWordNameAnalysis(...)
 
         # Update the classification with multi-word details
         if priority_classification.rule_details is not None:
@@ -359,7 +343,9 @@ class RuleBasedClassifier:
 
         if not best_classification:
             # Fallback to highest confidence
-            best_classification = max(classifications, key=lambda c: c.confidence)
+            best_classification = max(
+                classifications, key=lambda c: c.confidence
+            )
 
         return best_classification
 
@@ -374,9 +360,13 @@ class RuleBasedClassifier:
         if len(ethnic_counts) == 1:
             return f"All name parts classified as {chosen.ethnicity.value}"
 
+        ethnicities = ', '.join(
+            f'{e.value}({c})' for e, c in ethnic_counts.items()
+        )
         return (
-            f"Multi-ethnic name with {', '.join(f'{e.value}({c})' for e, c in ethnic_counts.items())}. "
-            f"Applied priority rule: least European element '{chosen.name}' ({chosen.ethnicity.value}) wins."
+            f"Multi-ethnic name with {ethnicities}. "
+            f"Applied priority rule: least European element '{chosen.name}' "
+            f"({chosen.ethnicity.value}) wins."
         )
 
     def _apply_special_heuristics(self, name: str) -> Optional[Classification]:
@@ -424,7 +414,10 @@ class RuleBasedClassifier:
                     ethnicity=ethnicity,
                     confidence=entry.confidence,
                     method=ClassificationMethod.RULE_BASED,
-                    reasoning=f"Dictionary match in {ethnicity.value} with confidence {entry.confidence}",
+                    reasoning=(
+                        f"Dictionary match in {ethnicity.value} "
+                        f"with confidence {entry.confidence}"
+                    ),
                 )
             )
 
@@ -493,13 +486,18 @@ class RuleBasedClassifier:
             "total_names": total_names,
             "ethnicity_breakdown": coverage,
             "coverage_percentages": {
-                ethnicity.value: (count / total_names * 100) if total_names > 0 else 0
+                ethnicity.value: (count / total_names * 100)
+                if total_names > 0 else 0
                 for ethnicity, count in coverage.items()
             },
-            "special_heuristics": {"month_surnames": len(self._month_surnames)},
+            "special_heuristics": {
+                "month_surnames": len(self._month_surnames)
+            },
         }
 
-    def batch_classify(self, names: List[str]) -> List[Optional[Classification]]:
+    def batch_classify(
+        self, names: List[str]
+    ) -> List[Optional[Classification]]:
         """Classify multiple names efficiently."""
         results = []
 
@@ -611,7 +609,10 @@ class RuleBasedClassifier:
         return False
 
     def _handle_compound_surname_classification(
-        self, validation: ValidationResult, name_parts: List[str], individual_results: List[Optional[Classification]]
+        self,
+        validation: ValidationResult,
+        name_parts: List[str],
+        individual_results: List[Classification]
     ) -> Optional[Classification]:
         """Handle classification of names with compound surname patterns.
 
@@ -655,4 +656,6 @@ class RuleBasedClassifier:
         """Check if name structure suggests Afrikaans origin."""
         parts_lower = [p.lower() for p in name_parts]
         afrikaans_indicators = ["van", "der", "du", "le", "de"]
-        return any(indicator in parts_lower for indicator in afrikaans_indicators)
+        return any(
+            indicator in parts_lower for indicator in afrikaans_indicators
+        )

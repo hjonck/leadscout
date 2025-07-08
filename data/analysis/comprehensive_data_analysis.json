@@ -1,0 +1,178 @@
+{
+  "timestamp": "2025-07-08T02:15:55.524506",
+  "excel_files": {
+    "core_enrichment_output.xlsx": {
+      "file_info": {
+        "path": "data/test_runs/core_enrichment_output.xlsx",
+        "size_mb": 0.010396957397460938,
+        "row_count": 50,
+        "column_count": 15,
+        "columns": [
+          "EntityName",
+          "TradingAsName",
+          "Keyword",
+          "ContactNumber",
+          "CellNumber",
+          "EmailAddress",
+          "RegisteredAddress",
+          "RegisteredAddressCity",
+          "RegisteredAddressProvince",
+          "DirectorName",
+          "DirectorCell",
+          "ethnicity_classification",
+          "classification_confidence",
+          "classification_method",
+          "processing_time_ms"
+        ]
+      },
+      "data_quality": {
+        "completeness": {
+          "DirectorName": {
+            "non_null_count": 50,
+            "completeness_rate": 1.0,
+            "status": "GOOD"
+          },
+          "EntityName": {
+            "non_null_count": 50,
+            "completeness_rate": 1.0,
+            "status": "GOOD"
+          },
+          "EmailAddress": {
+            "non_null_count": 50,
+            "completeness_rate": 1.0,
+            "status": "GOOD"
+          }
+        },
+        "null_values": {
+          "EntityName": 0,
+          "TradingAsName": 0,
+          "Keyword": 0,
+          "ContactNumber": 0,
+          "CellNumber": 0,
+          "EmailAddress": 0,
+          "RegisteredAddress": 0,
+          "RegisteredAddressCity": 0,
+          "RegisteredAddressProvince": 0,
+          "DirectorName": 0,
+          "DirectorCell": 0,
+          "ethnicity_classification": 0,
+          "classification_confidence": 0,
+          "classification_method": 0,
+          "processing_time_ms": 0
+        },
+        "data_types": {
+          "EntityName": "object",
+          "TradingAsName": "object",
+          "Keyword": "object",
+          "ContactNumber": "object",
+          "CellNumber": "object",
+          "EmailAddress": "object",
+          "RegisteredAddress": "object",
+          "RegisteredAddressCity": "object",
+          "RegisteredAddressProvince": "object",
+          "DirectorName": "object",
+          "DirectorCell": "object",
+          "ethnicity_classification": "object",
+          "classification_confidence": "float64",
+          "classification_method": "object",
+          "processing_time_ms": "float64"
+        }
+      },
+      "classification_analysis": {
+        "total_names_classified": 50,
+        "classification_methods": {
+          "rule_based": 45,
+          "llm": 3,
+          "phonetic": 2
+        },
+        "ethnicity_distribution": {
+          "african": 17,
+          "white": 12,
+          "cape_malay": 8,
+          "indian": 8,
+          "coloured": 5
+        },
+        "confidence_scores": {
+          "mean": 0.8694,
+          "median": 0.865,
+          "min": 0.6,
+          "max": 0.95,
+          "std": 0.06525960715887441
+        }
+      },
+      "enhancement_validation": {
+        "rule_hit_rate": 0.9,
+        "llm_usage_percentage": 0.06,
+        "cost_per_1000_leads": 0.06,
+        "enhancement2_cases": {
+          "ANDREAS PETRUS VAN DER MERWE": {
+            "method": "rule_based",
+            "rule_based": true
+          },
+          "HEINRICH ADRIAN TIMMIE": {
+            "method": "rule_based",
+            "rule_based": true
+          },
+          "NOMVUYISEKO EUNICE MSINDO": {
+            "method": "rule_based",
+            "rule_based": true
+          },
+          "ALLISTER PIETERSEN": {
+            "method": "rule_based",
+            "rule_based": true
+          },
+          "MNCEDI NICHOLAS MAJIBANE": {
+            "method": "rule_based",
+            "rule_based": true
+          }
+        }
+      }
+    },
+    "baseline_output.xlsx": {
+      "status": "NOT_FOUND"
+    }
+  },
+  "databases": {
+    "learning_database": {
+      "tables": [
+        "llm_classifications",
+        "sqlite_sequence",
+        "learned_patterns",
+        "pattern_applications",
+        "phonetic_families",
+        "classification_cache",
+        "linguistic_rules",
+        "learning_analytics"
+      ],
+      "llm_classifications": {
+        "total_count": 134,
+        "avg_confidence": 0.85,
+        "min_confidence": 0.85,
+        "max_confidence": 0.85
+      },
+      "ethnicity_distribution": {
+        "african": 132,
+        "cape_malay": 1,
+        "coloured": 1
+      },
+      "provider_usage": {
+        "claude-3-5-haiku-20241022": 134
+      },
+      "learned_patterns": {
+        "total_count": 205,
+        "avg_confidence": 0.85
+      },
+      "pattern_types": {
+        "linguistic_marker": 1,
+        "structural_prefix_2": 84,
+        "structural_prefix_3": 120
+      }
+    }
+  },
+  "summary": {
+    "data_quality": "EXCELLENT",
+    "enhancement_performance": "EXCELLENT",
+    "learning_effectiveness": "EXCELLENT",
+    "overall_status": "PRODUCTION_READY"
+  }
+}

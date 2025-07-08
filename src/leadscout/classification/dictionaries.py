@@ -51,8 +51,8 @@ class NameEntry:
     ethnicity: EthnicityType
     confidence: float  # 0.0 to 1.0
     frequency: int = 1  # How often this name appears
-    regional_pattern: Optional[str] = None  # e.g., "KwaZulu-Natal", "Western Cape"
-    linguistic_origin: Optional[str] = None  # e.g., "Zulu", "Tamil", "Afrikaans"
+    regional_pattern: Optional[str] = None  # e.g., "KwaZulu-Natal"
+    linguistic_origin: Optional[str] = None  # e.g., "Zulu", "Tamil"
     name_type: str = "surname"  # "forename", "surname", "both"
     historical_context: Optional[str] = None  # Notes about origin/usage
 
@@ -84,18 +84,21 @@ class NameDictionaries:
         # Load from files if they exist, otherwise use built-in defaults
         self.dictionaries[EthnicityType.AFRICAN] = self._load_african_names()
         self.dictionaries[EthnicityType.INDIAN] = self._load_indian_names()
-        self.dictionaries[EthnicityType.CAPE_MALAY] = self._load_cape_malay_names()
+        self.dictionaries[EthnicityType.CAPE_MALAY] = (
+            self._load_cape_malay_names()
+        )
         self.dictionaries[EthnicityType.COLOURED] = self._load_coloured_names()
         self.dictionaries[EthnicityType.WHITE] = self._load_white_names()
         self.dictionaries[EthnicityType.CHINESE] = self._load_chinese_names()
 
         total_names = sum(len(d) for d in self.dictionaries.values())
         logger.info(
-            f"Loaded {total_names} names across {len(self.dictionaries)} ethnicities"
+            f"Loaded {total_names} names across "
+            f"{len(self.dictionaries)} ethnicities"
         )
 
     def _load_african_names(self) -> Dict[str, NameEntry]:
-        """Load comprehensive African name database (Nguni, Sotho, Tswana, Venda)."""
+        """Load comprehensive African name database (Nguni, Sotho, Tswana)."""
         names = {}
 
         # Nguni names (Zulu, Xhosa, Ndebele, Swazi)

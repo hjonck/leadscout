@@ -141,24 +141,133 @@ def list(status: str, limit: int):
         leadscout jobs list --limit 20
     """
     
-    async def list_jobs():
+    try:
+        import sqlite3
+        import pandas as pd
+        from pathlib import Path
+        from datetime import datetime
+        
+        db_path = Path("cache/jobs.db")
+        if not db_path.exists():
+            click.echo(f"❌ Job database not found: {db_path}")
+            click.echo("   Run a job processing command first to create the database")
+            return
+        
+        conn = sqlite3.connect(db_path)
+        
         try:
-            from ..core.job_database import JobDatabase
+            # Build query based on status filter
+            if status == 'all':
+                status_filter = ""
+            else:
+                status_filter = f"WHERE status = '{status}'"
             
-            job_db = JobDatabase()
-            # This would need to be implemented in JobDatabase
-            # jobs_list = await job_db.list_jobs(status_filter=status, limit=limit)
+            query = f"""
+            SELECT job_id, input_file_path, total_rows, processed_leads_count, 
+                   status, start_time, completion_time, processing_time_total_ms,
+                   api_costs_total
+            FROM job_executions 
+            {status_filter}
+            ORDER BY start_time DESC
+            LIMIT {limit}
+            """
             
-            # For now, show placeholder
-            click.echo(f"\n📋 Recent Jobs ({status}):")
-            click.echo("=" * 80)
-            click.echo("(Job listing functionality will be implemented after database methods are added)")
+            jobs_df = pd.read_sql_query(query, conn)
             
-        except Exception as e:
-            click.echo(f"❌ Failed to list jobs: {e}", err=True)
-            logger.error("Job listing failed", error=str(e))
-    
-    asyncio.run(list_jobs())
+            if jobs_df.empty:
+                click.echo(f"\n📋 No jobs found with status: {status}")
+                return
+            
+            click.echo(f"\n📋 Recent Jobs ({status}) - Showing {len(jobs_df)} of {limit} max")
+            click.echo("=" * 120)
+            
+            # Header
+            click.echo(f"{'Job ID':<12} {'Status':<12} {'File':<25} {'Leads':<8} {'Progress':<10} {'Time':<8} {'Cost':<10} {'Started':<16}")
+            click.echo("-" * 120)
+            
+            # Job rows
+            for _, job in jobs_df.iterrows():
+                job_id_short = job['job_id'][:10] + ".." if len(job['job_id']) > 12 else job['job_id']
+                
+                # Get filename from path
+                file_name = Path(job['input_file_path']).name
+                if len(file_name) > 23:
+                    file_name = file_name[:20] + "..."
+                
+                # Calculate progress
+                total = job['total_rows'] or 0
+                processed = job['processed_leads_count'] or 0
+                if total > 0:
+                    progress = f"{processed}/{total}"
+                    if len(progress) > 10:
+                        progress = f"{processed//1000}k/{total//1000}k"
+                else:
+                    progress = f"{processed}"
+                
+                # Format time
+                if job['processing_time_total_ms']:
+                    time_sec = job['processing_time_total_ms'] / 1000
+                    if time_sec < 60:
+                        time_str = f"{time_sec:.1f}s"
+                    elif time_sec < 3600:
+                        time_str = f"{time_sec/60:.1f}m"
+                    else:
+                        time_str = f"{time_sec/3600:.1f}h"
+                else:
+                    time_str = "-"
+                
+                # Format cost
+                cost = job['api_costs_total'] or 0.0
+                if cost == 0:
+                    cost_str = "Free"
+                elif cost < 0.01:
+                    cost_str = f"${cost:.4f}"
+                else:
+                    cost_str = f"${cost:.2f}"
+                
+                # Format start time
+                if job['start_time']:
+                    try:
+                        # Parse timestamp and format
+                        start_dt = pd.to_datetime(job['start_time'])
+                        start_str = start_dt.strftime("%m/%d %H:%M")
+                    except:
+                        start_str = str(job['start_time'])[:16]
+                else:
+                    start_str = "-"
+                
+                # Get status icon
+                status_icon = _get_status_icon(job['status'])
+                status_display = f"{status_icon} {job['status']}"
+                
+                click.echo(f"{job_id_short:<12} {status_display:<12} {file_name:<25} {processed:<8} {progress:<10} {time_str:<8} {cost_str:<10} {start_str:<16}")
+            
+            # Summary statistics
+            click.echo("-" * 120)
+            
+            total_jobs = len(jobs_df)
+            completed_jobs = len(jobs_df[jobs_df['status'] == 'completed'])
+            running_jobs = len(jobs_df[jobs_df['status'] == 'running'])
+            failed_jobs = len(jobs_df[jobs_df['status'] == 'failed'])
+            
+            total_leads = jobs_df['processed_leads_count'].sum()
+            total_cost = jobs_df['api_costs_total'].sum()
+            
+            click.echo(f"📊 Summary: {total_jobs} jobs | ✅ {completed_jobs} completed | 🔄 {running_jobs} running | ❌ {failed_jobs} failed")
+            click.echo(f"📈 Totals: {total_leads:,} leads processed | ${total_cost:.4f} total cost")
+            
+            # Show available commands
+            click.echo(f"\n💡 Commands:")
+            click.echo(f"   leadscout jobs status <job-id>     # Detailed job information")
+            click.echo(f"   leadscout jobs export <job-id>     # Export job results")
+            click.echo(f"   leadscout jobs analyze <job-id>    # Analyze job performance")
+            
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        click.echo(f"❌ Failed to list jobs: {e}", err=True)
+        logger.error("Job listing failed", error=str(e))
 
 
 @jobs.command()
@@ -225,21 +334,214 @@ def export(job_id: str, format: str, output: Optional[str]):
         leadscout jobs export abc123 --format csv --output results.csv
     """
     
-    async def export_results():
+    try:
+        import sqlite3
+        import pandas as pd
+        import json
+        from pathlib import Path
+        
+        # Generate output filename if not provided
+        if not output:
+            timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+            extensions = {'excel': 'xlsx', 'csv': 'csv', 'json': 'json'}
+            ext = extensions[format]
+            output = f"job_{job_id[:8]}_results_{timestamp}.{ext}"
+        
+        output_path = Path(output)
+        
+        click.echo(f"📁 Exporting job results: {job_id}")
+        click.echo(f"   Format: {format}")
+        click.echo(f"   Output: {output_path}")
+        
+        # Connect to job database
+        db_path = Path("cache/jobs.db")
+        if not db_path.exists():
+            click.echo(f"❌ Job database not found: {db_path}")
+            return
+        
+        conn = sqlite3.connect(db_path)
+        
         try:
-            # This would implement result export functionality
-            click.echo(f"📁 Exporting job results: {job_id}")
-            click.echo(f"   Format: {format}")
-            click.echo(f"   Output: {output or 'auto-generated'}")
+            # Get job info
+            job_query = """
+            SELECT job_id, input_file_path, total_rows, processed_leads_count, 
+                   status, start_time, completion_time, processing_time_total_ms
+            FROM job_executions 
+            WHERE job_id = ?
+            """
+            job_info = pd.read_sql_query(job_query, conn, params=(job_id,))
             
-            # Placeholder implementation
-            click.echo("(Export functionality will be implemented)")
+            if job_info.empty:
+                click.echo(f"❌ Job not found: {job_id}")
+                return
             
-        except Exception as e:
-            click.echo(f"❌ Export failed: {e}", err=True)
-            logger.error("Job export failed", job_id=job_id, error=str(e))
+            job = job_info.iloc[0]
+            click.echo(f"   Input file: {job['input_file_path']}")
+            click.echo(f"   Status: {job['status']}")
+            click.echo(f"   Processed: {job['processed_leads_count']} leads")
+            
+            # Get lead processing results
+            results_query = """
+            SELECT row_index, batch_number, entity_name, director_name,
+                   classification_result, processing_status, processing_time_ms,
+                   api_provider, api_cost, created_at
+            FROM lead_processing_results 
+            WHERE job_id = ?
+            ORDER BY row_index
+            """
+            results_df = pd.read_sql_query(results_query, conn, params=(job_id,))
+            
+            click.echo(f"   Retrieved: {len(results_df)} result records")
+            
+            # Parse classification results and expand columns
+            enriched_data = []
+            
+            for _, row in results_df.iterrows():
+                try:
+                    # Parse classification JSON
+                    classification_data = json.loads(row['classification_result']) if row['classification_result'] else {}
+                    
+                    # Create enriched row
+                    enriched_row = {
+                        'row_index': row['row_index'],
+                        'batch_number': row['batch_number'],
+                        'entity_name': row['entity_name'],
+                        'director_name': row['director_name'],
+                        'ethnicity_classification': classification_data.get('ethnicity', 'unknown'),
+                        'classification_confidence': classification_data.get('confidence', 0.0),
+                        'classification_method': classification_data.get('method', 'unknown'),
+                        'processing_status': row['processing_status'],
+                        'processing_time_ms': row['processing_time_ms'],
+                        'api_provider': row['api_provider'],
+                        'api_cost': row['api_cost'] or 0.0,
+                        'processed_at': row['created_at']
+                    }
+                    
+                    # Add any additional fields from classification
+                    for key, value in classification_data.items():
+                        if key not in ['ethnicity', 'confidence', 'method']:
+                            enriched_row[f'classification_{key}'] = value
+                    
+                    enriched_data.append(enriched_row)
+                    
+                except json.JSONDecodeError as e:
+                    click.echo(f"⚠️  Warning: Failed to parse classification for row {row['row_index']}: {e}")
+                    # Add basic row without classification details
+                    enriched_data.append({
+                        'row_index': row['row_index'],
+                        'entity_name': row['entity_name'],
+                        'director_name': row['director_name'],
+                        'processing_status': 'parse_error',
+                        'error': str(e)
+                    })
+            
+            # Create DataFrame
+            export_df = pd.DataFrame(enriched_data)
+            
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Save in requested format
+            if format == 'excel':
+                export_df.to_excel(output_path, index=False)
+            elif format == 'csv':
+                export_df.to_csv(output_path, index=False)
+            elif format == 'json':
+                export_df.to_json(output_path, orient='records', indent=2)
+            
+            click.echo(f"💾 Exported to: {output_path}")
+            
+            # Show summary statistics
+            click.echo(f"\n📈 Export Summary:")
+            click.echo(f"   Total records: {len(export_df)}")
+            
+            if 'ethnicity_classification' in export_df.columns:
+                click.echo(f"   Ethnicity breakdown:")
+                ethnicity_counts = export_df['ethnicity_classification'].value_counts()
+                for ethnicity, count in ethnicity_counts.items():
+                    click.echo(f"     {ethnicity}: {count}")
+            
+            if 'classification_method' in export_df.columns:
+                click.echo(f"   Method breakdown:")
+                method_counts = export_df['classification_method'].value_counts()
+                for method, count in method_counts.items():
+                    click.echo(f"     {method}: {count}")
+            
+            if 'api_cost' in export_df.columns:
+                total_cost = export_df['api_cost'].sum()
+                click.echo(f"   Total API cost: ${total_cost:.4f}")
+            
+            click.echo(f"✅ Export completed successfully!")
+            
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        click.echo(f"❌ Export failed: {e}", err=True)
+        logger.error("Job export failed", job_id=job_id, error=str(e))
+
+
+@jobs.command()
+@click.argument('job_id', required=False)
+@click.option('--all', is_flag=True, help='Analyze all jobs instead of specific job')
+def analyze(job_id: Optional[str], all: bool):
+    """Analyze job statistics and learning effectiveness.
     
-    asyncio.run(export_results())
+    Provides comprehensive analysis of job processing results including:
+    - Classification method breakdown and effectiveness
+    - Ethnicity distribution analysis
+    - API provider usage statistics
+    - Performance metrics and processing rates
+    - Learning effectiveness and cost optimization
+    - Performance target achievement
+    
+    Args:
+        job_id: Specific job ID to analyze (optional)
+        all: Analyze all jobs in database
+    
+    Examples:
+        leadscout jobs analyze abc123-def456-ghi789
+        leadscout jobs analyze --all
+        leadscout jobs analyze  # Analyze all jobs (same as --all)
+    """
+    
+    try:
+        import sqlite3
+        import pandas as pd
+        import json
+        from pathlib import Path
+        from collections import defaultdict
+        
+        # Determine what to analyze
+        if not job_id and not all:
+            # Default to analyzing all jobs if no specific job provided
+            all = True
+            
+        db_path = Path("cache/jobs.db")
+        if not db_path.exists():
+            click.echo(f"❌ Job database not found: {db_path}")
+            return
+        
+        conn = sqlite3.connect(db_path)
+        
+        try:
+            if job_id:
+                _analyze_specific_job(conn, job_id)
+            else:
+                _analyze_all_jobs(conn)
+                
+            # Also analyze learning database
+            _analyze_learning_database()
+                
+        except Exception as e:
+            click.echo(f"❌ Analysis failed: {e}")
+            logger.error("Job analysis failed", error=str(e))
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        click.echo(f"❌ Analysis setup failed: {e}", err=True)
+        logger.error("Job analysis setup failed", error=str(e))
 
 
 @jobs.command()
@@ -428,6 +730,243 @@ def _display_job_learning_analytics(analytics: dict):
         click.echo(f"  Total LLM Calls: {batch_summary.get('total_llm_calls', 0)}")
         click.echo(f"  Total Learned Hits: {batch_summary.get('total_learned_hits', 0)}")
         click.echo(f"  Average Batch Time: {batch_summary.get('avg_batch_time', 0):.2f}ms")
+
+
+def _analyze_specific_job(conn, job_id: str):
+    """Analyze a specific job in detail."""
+    import json
+    import pandas as pd
+    
+    # Get job info
+    job_query = """
+    SELECT job_id, input_file_path, total_rows, processed_leads_count, 
+           status, start_time, completion_time, processing_time_total_ms,
+           api_costs_total
+    FROM job_executions 
+    WHERE job_id = ?
+    """
+    job_info = pd.read_sql_query(job_query, conn, params=(job_id,))
+    
+    if job_info.empty:
+        click.echo(f"❌ Job not found: {job_id}")
+        return
+    
+    job = job_info.iloc[0]
+    
+    click.echo(f"📊 Job Analysis: {job_id}")
+    click.echo("=" * 60)
+    click.echo(f"   Input File: {job['input_file_path']}")
+    click.echo(f"   Status: {job['status']}")
+    click.echo(f"   Total Leads: {job['total_rows']}")
+    click.echo(f"   Processed: {job['processed_leads_count']}")
+    click.echo(f"   Processing Time: {job['processing_time_total_ms']/1000:.2f} seconds")
+    click.echo(f"   Total API Cost: ${job['api_costs_total']:.4f}")
+    
+    # Get lead processing results
+    results_query = """
+    SELECT classification_result, processing_status, processing_time_ms,
+           api_provider, api_cost, batch_number
+    FROM lead_processing_results 
+    WHERE job_id = ?
+    """
+    results_df = pd.read_sql_query(results_query, conn, params=(job_id,))
+    
+    if results_df.empty:
+        click.echo("❌ No processing results found")
+        return
+    
+    # Parse classification results
+    methods = []
+    ethnicities = []
+    confidences = []
+    providers = []
+    
+    for _, row in results_df.iterrows():
+        try:
+            if row['classification_result']:
+                classification = json.loads(row['classification_result'])
+                methods.append(classification.get('method', 'unknown'))
+                ethnicities.append(classification.get('ethnicity', 'unknown'))
+                confidences.append(classification.get('confidence', 0.0))
+            providers.append(row['api_provider'] or 'none')
+        except:
+            methods.append('error')
+            ethnicities.append('error')
+            confidences.append(0.0)
+    
+    # Calculate statistics
+    click.echo(f"\n🎯 Classification Methods:")
+    method_counts = pd.Series(methods).value_counts()
+    total_classifications = len(methods)
+    
+    for method, count in method_counts.items():
+        percentage = count / total_classifications * 100
+        click.echo(f"   {method.title()}: {count} ({percentage:.1f}%)")
+    
+    click.echo(f"\n🌍 Ethnicity Distribution:")
+    ethnicity_counts = pd.Series(ethnicities).value_counts()
+    for ethnicity, count in ethnicity_counts.items():
+        percentage = count / total_classifications * 100
+        click.echo(f"   {ethnicity.title()}: {count} ({percentage:.1f}%)")
+    
+    click.echo(f"\n🔍 Provider Usage:")
+    provider_counts = pd.Series(providers).value_counts()
+    for provider, count in provider_counts.items():
+        percentage = count / len(providers) * 100
+        click.echo(f"   {provider.title()}: {count} ({percentage:.1f}%)")
+    
+    # Performance metrics
+    avg_processing_time = results_df['processing_time_ms'].mean()
+    total_api_cost = results_df['api_cost'].sum()
+    
+    click.echo(f"\n⚡ Performance Metrics:")
+    click.echo(f"   Average Processing Time: {avg_processing_time:.2f}ms")
+    click.echo(f"   Processing Rate: {1000/avg_processing_time:.1f} leads/second")
+    click.echo(f"   Total API Cost: ${total_api_cost:.4f}")
+    click.echo(f"   Cost per Lead: ${total_api_cost/total_classifications:.6f}")
+    
+    # Learning effectiveness
+    rule_based_count = method_counts.get('rule_based', 0)
+    phonetic_count = method_counts.get('phonetic', 0)
+    cache_count = method_counts.get('cache', 0)
+    llm_count = method_counts.get('llm', 0)
+    
+    non_llm_count = rule_based_count + phonetic_count + cache_count
+    llm_percentage = llm_count / total_classifications * 100
+    cost_efficiency = non_llm_count / total_classifications * 100
+    
+    click.echo(f"\n🧠 Learning Effectiveness:")
+    click.echo(f"   Non-LLM Classifications: {non_llm_count} ({cost_efficiency:.1f}%)")
+    click.echo(f"   LLM Usage: {llm_count} ({llm_percentage:.1f}%)")
+    click.echo(f"   Cost Efficiency: {cost_efficiency:.1f}%")
+    
+    # Performance targets
+    click.echo(f"\n🎯 Performance Targets:")
+    click.echo(f"   {'✅' if llm_percentage < 5 else '❌'} LLM Usage < 5%: {llm_percentage:.1f}%")
+    click.echo(f"   {'✅' if cost_efficiency > 80 else '❌'} Cost Efficiency > 80%: {cost_efficiency:.1f}%")
+    click.echo(f"   {'✅' if avg_processing_time < 100 else '❌'} Processing < 100ms: {avg_processing_time:.1f}ms")
+
+
+def _analyze_all_jobs(conn):
+    """Analyze all jobs in the database."""
+    import pandas as pd
+    
+    # Get all jobs
+    jobs_query = """
+    SELECT job_id, input_file_path, total_rows, processed_leads_count, 
+           status, start_time, completion_time, processing_time_total_ms,
+           api_costs_total
+    FROM job_executions 
+    ORDER BY start_time DESC
+    """
+    jobs_df = pd.read_sql_query(jobs_query, conn)
+    
+    if jobs_df.empty:
+        click.echo("❌ No jobs found in database")
+        return
+    
+    click.echo(f"📊 All Jobs Analysis")
+    click.echo("=" * 60)
+    click.echo(f"   Total Jobs: {len(jobs_df)}")
+    
+    # Job status breakdown
+    status_counts = jobs_df['status'].value_counts()
+    click.echo(f"\n📋 Job Status:")
+    for status, count in status_counts.items():
+        click.echo(f"   {status.title()}: {count}")
+    
+    # Completed jobs analysis
+    completed_jobs = jobs_df[jobs_df['status'] == 'completed']
+    
+    if not completed_jobs.empty:
+        total_leads = completed_jobs['processed_leads_count'].sum()
+        total_time = completed_jobs['processing_time_total_ms'].sum() / 1000
+        total_cost = completed_jobs['api_costs_total'].sum()
+        
+        click.echo(f"\n📈 Completed Jobs Summary:")
+        click.echo(f"   Total Leads Processed: {total_leads:,}")
+        click.echo(f"   Total Processing Time: {total_time:.2f} seconds")
+        if total_time > 0:
+            click.echo(f"   Average Processing Rate: {total_leads/total_time:.1f} leads/second")
+        click.echo(f"   Total API Costs: ${total_cost:.4f}")
+        if total_leads > 0:
+            click.echo(f"   Average Cost per Lead: ${total_cost/total_leads:.6f}")
+        
+        # Show recent jobs
+        click.echo(f"\n📝 Recent Jobs:")
+        for _, job in completed_jobs.head(5).iterrows():
+            processing_time = job['processing_time_total_ms'] / 1000
+            rate = job['processed_leads_count'] / processing_time if processing_time > 0 else 0
+            click.echo(f"   {job['job_id'][:8]}... | {job['processed_leads_count']:4d} leads | "
+                      f"{rate:6.1f} leads/sec | ${job['api_costs_total']:.4f}")
+
+
+def _analyze_learning_database():
+    """Analyze the learning database patterns."""
+    import sqlite3
+    import pandas as pd
+    from pathlib import Path
+    
+    learning_db_path = Path("cache/llm_learning.db")
+    if not learning_db_path.exists():
+        click.echo(f"\n❌ Learning database not found: {learning_db_path}")
+        return
+    
+    conn = sqlite3.connect(learning_db_path)
+    
+    try:
+        click.echo(f"\n🧠 Learning Database Analysis")
+        click.echo("=" * 60)
+        
+        # Classification counts
+        try:
+            classifications_query = "SELECT COUNT(*) as count FROM llm_classifications"
+            classifications_count = pd.read_sql_query(classifications_query, conn).iloc[0]['count']
+        except:
+            classifications_count = 0
+        
+        # Pattern counts
+        try:
+            patterns_query = "SELECT COUNT(*) as count FROM learned_patterns"
+            patterns_count = pd.read_sql_query(patterns_query, conn).iloc[0]['count']
+        except:
+            patterns_count = 0
+        
+        click.echo(f"   Total LLM Classifications: {classifications_count}")
+        click.echo(f"   Generated Patterns: {patterns_count}")
+        
+        if classifications_count > 0:
+            learning_efficiency = patterns_count / classifications_count
+            click.echo(f"   Learning Efficiency: {learning_efficiency:.2f} patterns per LLM call")
+        
+        # Ethnicity distribution in learning database
+        try:
+            ethnicity_query = "SELECT ethnicity, COUNT(*) as count FROM llm_classifications GROUP BY ethnicity"
+            ethnicity_df = pd.read_sql_query(ethnicity_query, conn)
+            
+            if not ethnicity_df.empty:
+                click.echo(f"\n🌍 Learning Database Ethnicities:")
+                for _, row in ethnicity_df.iterrows():
+                    click.echo(f"   {row['ethnicity'].title()}: {row['count']}")
+        except Exception as e:
+            click.echo(f"   ⚠️  Could not analyze ethnicities: {e}")
+        
+        # Pattern types
+        try:
+            pattern_types_query = "SELECT pattern_type, COUNT(*) as count FROM learned_patterns GROUP BY pattern_type"
+            pattern_types_df = pd.read_sql_query(pattern_types_query, conn)
+            
+            if not pattern_types_df.empty:
+                click.echo(f"\n🔍 Pattern Types:")
+                for _, row in pattern_types_df.iterrows():
+                    click.echo(f"   {row['pattern_type'].title()}: {row['count']}")
+        except Exception as e:
+            click.echo(f"   ⚠️  Could not analyze pattern types: {e}")
+                
+    except Exception as e:
+        click.echo(f"❌ Learning analysis failed: {e}")
+    finally:
+        conn.close()
 
 
 def _get_status_icon(status: str) -> str:
